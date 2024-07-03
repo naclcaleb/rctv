@@ -88,3 +88,5 @@ class _CounterPageState extends State<CounterPage> {
 ## Additional information
 
 Another important class included in this package is the `Loadable`, a further wrapper for `Reactive` that provides a scaffold for asynchronous request handling. 
+
+If desired, `rctv` also supports creating `SupervisedReactive` objects, which update according to defined transactions, allowing them to be observed via a `ReactiveSupervisor` (or `ReactiveSupervisorProvider`) similar to observer patterns in other state management libraries like BLoC. 

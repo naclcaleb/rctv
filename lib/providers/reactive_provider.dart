@@ -1,4 +1,6 @@
 import 'package:flutter/widgets.dart';
+import 'package:rctv/core/supervised_reactive.dart';
+import 'package:rctv/providers/reactive_supervisor_provider.dart';
 import '../core/reactive.dart';
 
 /*
@@ -25,6 +27,15 @@ class _ReactiveProviderState<DataType> extends State<ReactiveProvider<DataType>>
   void initState() {
     super.initState();
 
+    //For supervised reactives, register them if possible
+    if (widget.reactive is SupervisedReactive) {
+      final supervisedReactive = widget.reactive as SupervisedReactive;
+      final supervisor = ReactiveSupervisorProvider.of(context);
+      if (supervisor != null) {
+        supervisedReactive.setSupervisor(supervisor);
+      }
+    }
+
     _reactiveSubscription = widget.reactive.watch((newValue, prevValue) {
       setState(() {});
     });
@@ -33,6 +44,12 @@ class _ReactiveProviderState<DataType> extends State<ReactiveProvider<DataType>>
   @override
   void dispose() {
     _reactiveSubscription.dispose();
+    
+    if (widget.reactive is SupervisedReactive) {
+      final supervisedReactive = widget.reactive as SupervisedReactive;
+      supervisedReactive.removeSupervisor();
+    }
+
     super.dispose();
   }
 

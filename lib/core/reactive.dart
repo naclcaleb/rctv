@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 abstract interface class ReactiveBase<DataType> {
   DataType? read();
   ReactiveSubscription watch(ReactiveListener<DataType> listener);
+  void dispose();
 }
 
 class ReactiveSubscription {

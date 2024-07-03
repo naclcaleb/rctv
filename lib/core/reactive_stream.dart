@@ -35,6 +35,7 @@ class ReactiveStream<DataType> implements ReactiveBase<DataType> {
 
   }
 
+  @override
   void dispose() {
     _streamController.close();
   }
