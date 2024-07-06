@@ -24,10 +24,14 @@ class Loadable<ValueType> {
 
   Future<ValueType?> Function()? _currentFuture;
 
-  final _reactiveStream = ReactiveStream<LoadableUpdate<ValueType>>(null);
+  final ReactiveStream<LoadableUpdate<ValueType>> _reactiveStream = ReactiveStream<LoadableUpdate<ValueType>>(LoadableUpdate(LoadableState.notStarted));
   ReactiveStream<LoadableUpdate<ValueType>> get reactive => _reactiveStream;
 
   ValueType? get value => _reactiveStream.read()?.data;
+
+  Loadable([ValueType? initialValue]) {
+    if (initialValue != null) _reactiveStream.add(LoadableUpdate(LoadableState.data, data: initialValue));
+  }
 
   set value(ValueType? newValue) {
     _reactiveStream.add(LoadableUpdate<ValueType>(LoadableState.data, data: newValue));
