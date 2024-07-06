@@ -22,12 +22,17 @@ class LoadableUpdate<ValueType> {
 //Designed to be created only in viewmodels
 class Loadable<ValueType> {
 
+  //For easy error handling
+  static void Function(Exception error) defaultErrorHandler = (error) {}; 
+
   Future<ValueType?> Function()? _currentFuture;
 
   final ReactiveStream<LoadableUpdate<ValueType>> _reactiveStream = ReactiveStream<LoadableUpdate<ValueType>>(LoadableUpdate(LoadableState.notStarted));
   ReactiveStream<LoadableUpdate<ValueType>> get reactive => _reactiveStream;
 
   ValueType? get value => _reactiveStream.read()?.data;
+
+  void Function(Exception error)? _errorHandler;
 
   Loadable([ValueType? initialValue]) {
     if (initialValue != null) _reactiveStream.add(LoadableUpdate(LoadableState.data, data: initialValue));
@@ -41,6 +46,12 @@ class Loadable<ValueType> {
     if (_currentFuture != null) await loadWithFuture(_currentFuture!);
   }
 
+  Loadable<ValueType> withErrorHandler({void Function(Exception error)? handler}) {
+    if (handler != null) _errorHandler = handler;
+    else _errorHandler = Loadable.defaultErrorHandler;
+    return this;
+  }
+
   Future<ValueType?> loadWithFuture(Future<ValueType?> Function() future) async {
 
     _currentFuture = future;
@@ -51,7 +62,10 @@ class Loadable<ValueType> {
     //Load the data
     final newData = await future().catchError((error) {
       _reactiveStream.add(LoadableUpdate<ValueType>(LoadableState.error, error: error.toString()));
-      throw error;
+
+      if (_errorHandler != null) _errorHandler!(error);
+      
+      return null;
     });
 
     //Update the stream
