@@ -28,9 +28,11 @@ class LoadableProvider<DataType> extends StatelessWidget {
         case LoadableState.error:
           return error(lastUpdate.error ?? 'Unknown error');
         case LoadableState.data:
-          return data(lastUpdate.data);
+          if (lastUpdate.data == null) return error('Unknown error');
+          return data(lastUpdate.data as DataType);
         case LoadableState.done:
-          return data(lastUpdate.data);
+          if (lastUpdate.data == null) return error('Unknown error');
+          return data(lastUpdate.data as DataType);
       }
     });
   }
