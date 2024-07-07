@@ -32,7 +32,7 @@ class Reactive<DataType> with ChangeNotifier implements ReactiveBase<DataType> {
     notifyListeners();
   }
 
-  void setSourceStream<Type>(Stream<Type> sourceStream, DataType Function(Type data) valueFromData) {
+  void setSourceStream<Type>(Stream<Type> sourceStream, DataType? Function(Type data) valueFromData) {
     _streamSubscription = sourceStream.listen((data) {
       set(valueFromData(data));
     });
