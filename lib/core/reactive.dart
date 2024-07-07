@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 abstract interface class ReactiveBase<DataType> {
@@ -19,6 +21,8 @@ class Reactive<DataType> with ChangeNotifier implements ReactiveBase<DataType> {
   DataType? _value;
   DataType? _prevValue;
 
+  StreamSubscription? _streamSubscription;
+
   Reactive([DataType? initialValue]);
 
   void set(DataType? newValue) {
@@ -26,6 +30,12 @@ class Reactive<DataType> with ChangeNotifier implements ReactiveBase<DataType> {
     _value = newValue;
 
     notifyListeners();
+  }
+
+  void setSourceStream<Type>(Stream<Type> sourceStream, DataType Function(Type data) valueFromData) {
+    _streamSubscription = sourceStream.listen((data) {
+      set(valueFromData(data));
+    });
   }
 
   @override
@@ -60,6 +70,12 @@ class Reactive<DataType> with ChangeNotifier implements ReactiveBase<DataType> {
     return ReactiveSubscription(() {
       removeListener(listener0);
     });
+  }
+
+  @override
+  void dispose() {
+    _streamSubscription?.cancel();
+    super.dispose();
   }
 
 }
