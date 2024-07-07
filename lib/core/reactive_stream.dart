@@ -4,23 +4,24 @@ import 'reactive.dart';
 
 class ReactiveStream<DataType> implements ReactiveBase<DataType> {
 
-  DataType? _currentValue;
-  DataType? _prevValue;
+  DataType _currentValue;
+  DataType _prevValue;
 
-  final _streamController = StreamController<DataType?>.broadcast();
+  final _streamController = StreamController<DataType>.broadcast();
 
-  ReactiveStream([DataType? initialValue]) {
-    _currentValue = initialValue;
-  }
+  ReactiveStream(DataType initialValue) :
+    _currentValue = initialValue,
+    _prevValue = initialValue;
+  
 
-  void add(DataType? value) {
+  void add(DataType value) {
     _prevValue = _currentValue;
     _streamController.add(value);
     _currentValue = value;
   }
 
   @override
-  DataType? read() => _currentValue;
+  DataType read() => _currentValue;
 
   @override
   ReactiveSubscription watch(ReactiveListener<DataType> listener) {

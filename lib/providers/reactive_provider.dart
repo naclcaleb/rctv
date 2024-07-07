@@ -10,7 +10,7 @@ import '../core/reactive.dart';
 class ReactiveProvider<DataType> extends StatefulWidget {
 
   final ReactiveBase<DataType> reactive;
-  final Widget Function(BuildContext context, DataType? value, Widget? child) builder;
+  final Widget Function(BuildContext context, DataType value, Widget? child) builder;
   final Widget? child;
 
   const ReactiveProvider(this.reactive, {required this.builder, this.child, super.key});

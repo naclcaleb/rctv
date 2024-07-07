@@ -7,11 +7,11 @@ import 'package:rctv/core/reactive_supervisor.dart';
 class ReactiveTransaction<DataType> {
 
   final String name;
-  final FutureOr<DataType?> Function(DataType? currentValue) runner;
+  final FutureOr<DataType> Function(DataType currentValue) runner;
 
   ReactiveTransaction({ required this.name, required this.runner });
 
-  FutureOr<DataType?> execute(DataType? currentValue) {
+  FutureOr<DataType> execute(DataType currentValue) {
     return runner(currentValue);
   }
   
@@ -24,11 +24,11 @@ abstract class SupervisedReactive<DataType> implements ReactiveBase<DataType> {
 
   ReactiveSupervisor? _supervisor;
 
-  SupervisedReactive(this.name, { DataType? initialValue }) :
+  SupervisedReactive(this.name, { required DataType initialValue }) :
     _reactive = Reactive(initialValue);
   
   @override
-  DataType? read() => _reactive.read();
+  DataType read() => _reactive.read();
 
   @override
   ReactiveSubscription watch(ReactiveListener<DataType> listener) {
@@ -44,7 +44,7 @@ abstract class SupervisedReactive<DataType> implements ReactiveBase<DataType> {
 
   Future<void> perform(ReactiveTransaction transaction) async {
 
-      DataType? result;
+      DataType result;
 
       //First, let's execute the transaction
       final potentialFuture = transaction.execute(_reactive.read());
@@ -52,7 +52,7 @@ abstract class SupervisedReactive<DataType> implements ReactiveBase<DataType> {
         result = await potentialFuture;
       }
       else {
-        result = potentialFuture as DataType?;
+        result = potentialFuture as DataType;
       }
 
       //Notify the supervisor if available
@@ -79,6 +79,6 @@ abstract class SupervisedReactive<DataType> implements ReactiveBase<DataType> {
 }
 
 //Utility method
-ReactiveTransaction<DataType> rctvTransaction<DataType>(String transactionName, FutureOr<DataType?> Function(DataType? currentValue) runner) {
+ReactiveTransaction<DataType> rctvTransaction<DataType>(String transactionName, FutureOr<DataType> Function(DataType currentValue) runner) {
   return ReactiveTransaction(name: transactionName, runner: runner);
 }

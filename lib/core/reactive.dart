@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 abstract interface class ReactiveBase<DataType> {
-  DataType? read();
+  DataType read();
   ReactiveSubscription watch(ReactiveListener<DataType> listener);
   void dispose();
 }
@@ -14,32 +14,32 @@ class ReactiveSubscription {
   ReactiveSubscription(this.dispose);
 }
 
-typedef ReactiveListener<DataType> = void Function(DataType? newValue, DataType? prevValue);
+typedef ReactiveListener<DataType> = void Function(DataType newValue, DataType prevValue);
 
 class Reactive<DataType> with ChangeNotifier implements ReactiveBase<DataType> {
 
-  DataType? _value;
-  DataType? _prevValue;
+  DataType _value;
+  DataType _prevValue;
 
   final List<StreamSubscription?> _streamSubscriptions = [];
 
-  Reactive([DataType? initialValue]);
+  Reactive(DataType initialValue) : _value = initialValue, _prevValue = initialValue;
 
-  void set(DataType? newValue) {
+  void set(DataType newValue) {
     _prevValue = _value;
     _value = newValue;
 
     notifyListeners();
   }
 
-  void addSourceStream<Type>(Stream<Type> sourceStream, DataType? Function(Type data) valueFromData) {
+  void addSourceStream<Type>(Stream<Type> sourceStream, DataType Function(Type data) valueFromData) {
     _streamSubscriptions.add(sourceStream.listen((data) {
       set(valueFromData(data));
     }));
   }
 
   @override
-  DataType? read() => _value;
+  DataType read() => _value;
 
   /*
   Unfortunately, Dart currently has no convenient way to handle immutability.
@@ -49,7 +49,7 @@ class Reactive<DataType> with ChangeNotifier implements ReactiveBase<DataType> {
   happening only inside this update function.
   This is the ONLY way reactive values should be updated with this package.
   */
-  void update(DataType? Function(DataType? workingCopy) updater) {
+  void update(DataType Function(DataType workingCopy) updater) {
     //Ideally, we'd clone the object here before the user performs any transformations
     final workingCopy = _value;
 

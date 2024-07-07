@@ -15,8 +15,6 @@ class LoadableProvider<DataType> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ReactiveProvider(loadable.reactive, builder: (context, lastUpdate, _) {
-      if (lastUpdate == null) throw Exception('Loadable sent null LoadableUpdate');
-
       final state = lastUpdate.state;
 
       switch (state) {

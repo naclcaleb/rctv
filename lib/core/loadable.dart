@@ -30,7 +30,7 @@ class Loadable<ValueType> {
   final ReactiveStream<LoadableUpdate<ValueType>> _reactiveStream = ReactiveStream<LoadableUpdate<ValueType>>(LoadableUpdate(LoadableState.notStarted));
   ReactiveStream<LoadableUpdate<ValueType>> get reactive => _reactiveStream;
 
-  ValueType? get value => _reactiveStream.read()?.data;
+  ValueType? get value => _reactiveStream.read().data;
 
   void Function(Exception error)? _errorHandler;
 
@@ -64,7 +64,7 @@ class Loadable<ValueType> {
       _reactiveStream.add(LoadableUpdate<ValueType>(LoadableState.error, error: error.toString()));
 
       if (_errorHandler != null) _errorHandler!(error);
-      
+
       return null;
     });
 
