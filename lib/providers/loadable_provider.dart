@@ -8,7 +8,7 @@ class LoadableProvider<DataType> extends StatelessWidget {
   final Widget Function()? notStarted;
   final Widget Function() loading;
   final Widget Function(String error) error;
-  final Widget Function(DataType? data) data;
+  final Widget Function(DataType data) data;
 
   const LoadableProvider(this.loadable, { this.notStarted, required this.loading, required this.error, required this.data, super.key});
 
