@@ -21,7 +21,7 @@ class Reactive<DataType> with ChangeNotifier implements ReactiveBase<DataType> {
   DataType? _value;
   DataType? _prevValue;
 
-  StreamSubscription? _streamSubscription;
+  final List<StreamSubscription?> _streamSubscriptions = [];
 
   Reactive([DataType? initialValue]);
 
@@ -32,10 +32,10 @@ class Reactive<DataType> with ChangeNotifier implements ReactiveBase<DataType> {
     notifyListeners();
   }
 
-  void setSourceStream<Type>(Stream<Type> sourceStream, DataType? Function(Type data) valueFromData) {
-    _streamSubscription = sourceStream.listen((data) {
+  void addSourceStream<Type>(Stream<Type> sourceStream, DataType? Function(Type data) valueFromData) {
+    _streamSubscriptions.add(sourceStream.listen((data) {
       set(valueFromData(data));
-    });
+    }));
   }
 
   @override
@@ -74,7 +74,9 @@ class Reactive<DataType> with ChangeNotifier implements ReactiveBase<DataType> {
 
   @override
   void dispose() {
-    _streamSubscription?.cancel();
+    for (final sub in _streamSubscriptions) {
+      sub?.cancel();
+    }
     super.dispose();
   }
 
