@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/widgets.dart';
 import 'package:rctv/core/supervised_reactive.dart';
 import 'package:rctv/providers/reactive_supervisor_provider.dart';
@@ -45,7 +47,9 @@ class _MultiReactiveProviderState<DataType> extends State<MultiReactiveProvider<
   final List<ReactiveSubscription> _reactiveSubscriptions = [];
 
   InheritedReactive<T> _createInheritedReactiveFromReactive<T>(ReactiveBase<T> reactive, child) {
-    return InheritedReactive<T>(reactive, child: child);
+    final ir = InheritedReactive<T>(reactive, child: child);
+    log(ir.runtimeType.toString());
+    return ir;
   }
 
   Widget _buildInheritedReactiveTree<T>(int index) {
