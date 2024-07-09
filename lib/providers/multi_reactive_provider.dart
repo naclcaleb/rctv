@@ -30,19 +30,19 @@ class InheritedReactive<DataType> extends InheritedWidget {
   
 }
 
-class MultiReactiveProvider<DataType> extends StatefulWidget {
+class MultiReactiveProvider extends StatefulWidget {
 
-  final List<ReactiveBase<DataType>> reactives;
+  final List<ReactiveBase> reactives;
   final Widget Function(BuildContext context, Widget? child) builder;
   final Widget? child;
 
   const MultiReactiveProvider(this.reactives, {required this.builder, this.child, super.key});
 
   @override
-  State<MultiReactiveProvider<DataType>> createState() => _MultiReactiveProviderState<DataType>();
+  State<MultiReactiveProvider> createState() => _MultiReactiveProviderState();
 }
 
-class _MultiReactiveProviderState<DataType> extends State<MultiReactiveProvider<DataType>> {
+class _MultiReactiveProviderState extends State<MultiReactiveProvider> {
   
   final List<ReactiveSubscription> _reactiveSubscriptions = [];
 
