@@ -17,9 +17,7 @@ class InheritedReactive<DataType> extends StatelessWidget {
   InheritedReactive(this.reactive, {super.key});
 
   static DataType of<DataType>(BuildContext context) {
-    final inheritedReactive = _InheritedReactive.maybeOf<DataType>(context);
-    assert(inheritedReactive != null, 'No InheritedReactive found in this context!');
-    return inheritedReactive!.reactive.read();
+    return _InheritedReactive.of<DataType>(context);
   }
 
   void setChild(Widget child) {
