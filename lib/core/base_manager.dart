@@ -34,4 +34,10 @@ abstract class ManagerBase<Item extends Manageable<Item>, OutputType> {
   }
 
   Future<Item> fetchItem(String id) async { throw UnimplementedError(); }
+
+  Future<List<OutputType>> getAll(List<Item> items) async {
+    final itemFutures = <Future<OutputType>>[];
+    for (final item in items) { itemFutures.add(get(item.id)); }
+    return Future.wait(itemFutures);
+  }
 }
