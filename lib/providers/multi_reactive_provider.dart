@@ -9,14 +9,36 @@ import '../core/reactive.dart';
   Very basic widget that rebuilds on any update to a Reactive
 */
 
-class InheritedReactive<DataType> extends InheritedWidget {
+class InheritedReactive<DataType> extends StatelessWidget {
+
+  final ReactiveBase<DataType> reactive;
+  late final Widget child;
+
+  InheritedReactive(this.reactive, {super.key});
+
+  static DataType of<DataType>(BuildContext context) {
+    final inheritedReactive = _InheritedReactive.maybeOf<DataType>(context);
+    assert(inheritedReactive != null, 'No InheritedReactive found in this context!');
+    return inheritedReactive!.reactive.read();
+  }
+
+  void setChild(Widget child) {
+    this.child = child;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _InheritedReactive<DataType>(reactive, child: child);
+  }
+}
+class _InheritedReactive<DataType> extends InheritedWidget {
 
   final ReactiveBase<DataType> reactive;
 
-  const InheritedReactive(this.reactive, { super.key, required super.child});
+  const _InheritedReactive(this.reactive, { super.key, required super.child});
     
-  static InheritedReactive<DataType>? maybeOf<DataType>(BuildContext context) {
-    return context.dependOnInheritedWidgetOfExactType<InheritedReactive<DataType>>();
+  static _InheritedReactive<DataType>? maybeOf<DataType>(BuildContext context) {
+    return context.dependOnInheritedWidgetOfExactType<_InheritedReactive<DataType>>();
   }
 
   static DataType of<DataType>(BuildContext context) {
@@ -26,7 +48,7 @@ class InheritedReactive<DataType> extends InheritedWidget {
   }
 
   @override
-  bool updateShouldNotify(InheritedReactive oldWidget) => oldWidget.reactive != reactive;
+  bool updateShouldNotify(_InheritedReactive oldWidget) => oldWidget.reactive != reactive;
   
 }
 
@@ -46,15 +68,11 @@ class _MultiReactiveProviderState extends State<MultiReactiveProvider> {
   
   final List<ReactiveSubscription> _reactiveSubscriptions = [];
 
-  InheritedReactive<T> _createInheritedReactiveFromReactive<T>(ReactiveBase<T> reactive, child) {
-    final ir = InheritedReactive<T>(reactive, child: child);
-    log(ir.runtimeType.toString());
-    return ir;
-  }
-
   Widget _buildInheritedReactiveTree<T>(int index) {
     if (index >= widget.reactives.length) return widget.builder(context, widget.child);
-    return _createInheritedReactiveFromReactive<T>(widget.reactives[index] as ReactiveBase<T>, _buildInheritedReactiveTree(index + 1));
+    final inheritedReactive = InheritedReactive<T>(widget.reactives[index] as ReactiveBase<T>);
+    inheritedReactive.setChild(_buildInheritedReactiveTree(index + 1));
+    return inheritedReactive;
   }
 
   @override
@@ -64,7 +82,7 @@ class _MultiReactiveProviderState extends State<MultiReactiveProvider> {
     for (final reactive in widget.reactives) {
       //For supervised reactives, register them if possible
       if (reactive is SupervisedReactive) {
-        final supervisedReactive = reactive as SupervisedReactive;
+        final supervisedReactive = reactive;
         final supervisor = ReactiveSupervisorProvider.of(context);
         if (supervisor != null) {
           supervisedReactive.setSupervisor(supervisor);
@@ -84,7 +102,7 @@ class _MultiReactiveProviderState extends State<MultiReactiveProvider> {
     }
     for (final reactive in widget.reactives) {
       if (reactive is SupervisedReactive) {
-        final supervisedReactive = reactive as SupervisedReactive;
+        final supervisedReactive = reactive;
         supervisedReactive.removeSupervisor();
       }
     }
