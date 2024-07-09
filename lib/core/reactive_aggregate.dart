@@ -2,7 +2,7 @@ import 'reactive.dart';
 
 abstract class ReactiveAggregate {
 
-  void disposeReactives(List<Reactive> reactives) {
+  void disposeReactives(List<ReactiveBase> reactives) {
     for (final reactive in reactives) {
       reactive.dispose();
     }

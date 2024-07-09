@@ -20,7 +20,7 @@ class LoadableUpdate<ValueType> {
 }
 
 //Designed to be created only in viewmodels
-class Loadable<ValueType> {
+class Loadable<ValueType> implements ReactiveBase {
 
   //For easy error handling
   static void Function(Exception error) defaultErrorHandler = (error) {}; 
@@ -31,6 +31,9 @@ class Loadable<ValueType> {
   ReactiveStream<LoadableUpdate<ValueType>> get reactive => _reactiveStream;
 
   ValueType? get value => _reactiveStream.read().data;
+
+  @override
+  read() => value;
 
   void Function(Exception error)? _errorHandler;
 
@@ -89,11 +92,17 @@ class Loadable<ValueType> {
     return newData;
   }
   
+  @override
   void dispose() {
     _reactiveStream.dispose();
   }
 
-  ReactiveSubscription listenToStream(void Function(LoadableUpdate<ValueType>? update, LoadableUpdate<ValueType>? prevUpdate) listener) {
+  @override
+  ReactiveSubscription watch(ReactiveListener<LoadableUpdate<ValueType>> listener) {
+    return listenToStream(listener);
+  }
+
+  ReactiveSubscription listenToStream(ReactiveListener<LoadableUpdate<ValueType>> listener) {
     return _reactiveStream.watch(listener);
   }
 
