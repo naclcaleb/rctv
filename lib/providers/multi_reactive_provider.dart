@@ -67,7 +67,7 @@ class _MultiReactiveProviderState extends State<MultiReactiveProvider> {
   final List<ReactiveSubscription> _reactiveSubscriptions = [];
 
   Widget _buildInheritedReactiveTree<T>(int index) {
-    if (index >= widget.reactives.length) return widget.builder(context, widget.child);
+    if (index >= widget.reactives.length) return Builder(builder: (context) => widget.builder(context, widget.child));
     final inheritedReactive = widget.reactives[index] as InheritedReactive<T>;
     inheritedReactive.setChild(_buildInheritedReactiveTree(index + 1));
     return inheritedReactive;
