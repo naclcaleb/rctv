@@ -48,9 +48,9 @@ class _MultiReactiveProviderState<DataType> extends State<MultiReactiveProvider<
     return InheritedReactive<T>(reactive, child: child);
   }
 
-  Widget _buildInheritedReactiveTree(int index) {
+  Widget _buildInheritedReactiveTree<T>(int index) {
     if (index >= widget.reactives.length) return widget.builder(context, widget.child);
-    return _createInheritedReactiveFromReactive(widget.reactives[index], _buildInheritedReactiveTree(index + 1));
+    return _createInheritedReactiveFromReactive<T>(widget.reactives[index] as ReactiveBase<T>, _buildInheritedReactiveTree(index + 1));
   }
 
   @override
