@@ -54,7 +54,7 @@ class _InheritedReactive<DataType> extends InheritedWidget {
 
 class MultiReactiveProvider extends StatefulWidget {
 
-  final List<ReactiveBase> reactives;
+  final List<InheritedReactive> reactives;
   final Widget Function(BuildContext context, Widget? child) builder;
   final Widget? child;
 
@@ -70,7 +70,7 @@ class _MultiReactiveProviderState extends State<MultiReactiveProvider> {
 
   Widget _buildInheritedReactiveTree<T>(int index) {
     if (index >= widget.reactives.length) return widget.builder(context, widget.child);
-    final inheritedReactive = InheritedReactive<T>(widget.reactives[index] as ReactiveBase<T>);
+    final inheritedReactive = widget.reactives[index] as InheritedReactive<T>;
     inheritedReactive.setChild(_buildInheritedReactiveTree(index + 1));
     return inheritedReactive;
   }
@@ -81,15 +81,15 @@ class _MultiReactiveProviderState extends State<MultiReactiveProvider> {
 
     for (final reactive in widget.reactives) {
       //For supervised reactives, register them if possible
-      if (reactive is SupervisedReactive) {
-        final supervisedReactive = reactive;
+      if (reactive.reactive is SupervisedReactive) {
+        final supervisedReactive = reactive.reactive as SupervisedReactive;
         final supervisor = ReactiveSupervisorProvider.of(context);
         if (supervisor != null) {
           supervisedReactive.setSupervisor(supervisor);
         }
       }
 
-      _reactiveSubscriptions.add(reactive.watch((newValue, prevValue) {
+      _reactiveSubscriptions.add(reactive.reactive.watch((newValue, prevValue) {
         setState(() {});
       }));
     }
@@ -101,8 +101,8 @@ class _MultiReactiveProviderState extends State<MultiReactiveProvider> {
       subscription.dispose();
     }
     for (final reactive in widget.reactives) {
-      if (reactive is SupervisedReactive) {
-        final supervisedReactive = reactive;
+      if (reactive.reactive is SupervisedReactive) {
+        final supervisedReactive = reactive.reactive as SupervisedReactive;
         supervisedReactive.removeSupervisor();
       }
     }
