@@ -17,10 +17,10 @@ class InheritedReactive<DataType> extends InheritedWidget {
     return context.dependOnInheritedWidgetOfExactType<InheritedReactive<DataType>>();
   }
 
-  static ReactiveBase<DataType> of<DataType>(BuildContext context) {
+  static DataType of<DataType>(BuildContext context) {
     final inheritedReactive = maybeOf<DataType>(context);
     assert(inheritedReactive != null, 'No InheritedReactive found in this context!');
-    return inheritedReactive!.reactive;
+    return inheritedReactive!.reactive.read();
   }
 
   @override
