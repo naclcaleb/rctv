@@ -12,7 +12,7 @@ import '../core/reactive.dart';
 class InheritedReactive<DataType> extends StatelessWidget {
 
   final ReactiveBase<DataType> reactive;
-  late final Widget child;
+  Widget? child;
 
   InheritedReactive(this.reactive, {super.key});
 
@@ -26,7 +26,8 @@ class InheritedReactive<DataType> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _InheritedReactive<DataType>(reactive, child: child);
+    assert(child != null, 'InheritedReactive must be used within a MultiReactiveProvider');
+    return _InheritedReactive<DataType>(reactive, child: child!);
   }
 }
 class _InheritedReactive<DataType> extends InheritedWidget {
