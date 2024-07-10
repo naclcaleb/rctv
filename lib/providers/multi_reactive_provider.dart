@@ -1,8 +1,5 @@
-import 'dart:developer';
-
 import 'package:flutter/widgets.dart';
-import 'package:rctv/core/supervised_reactive.dart';
-import 'package:rctv/providers/reactive_supervisor_provider.dart';
+import 'package:rctv/providers/reactive_provider.dart';
 import '../core/reactive.dart';
 
 /*
@@ -12,7 +9,7 @@ import '../core/reactive.dart';
 class InheritedReactive<DataType> extends StatelessWidget {
 
   final ReactiveBase<DataType> reactive;
-  Widget? child;
+  Widget Function(BuildContext context)? builder;
 
   InheritedReactive(this.reactive, {super.key});
 
@@ -20,15 +17,24 @@ class InheritedReactive<DataType> extends StatelessWidget {
     return _InheritedReactive.of<DataType>(context);
   }
 
-  void setChild(Widget child) {
-    this.child = child;
+  void setBuilder(Widget Function(BuildContext context) builder) {
+    this.builder = builder;
   }
+
+
 
   @override
   Widget build(BuildContext context) {
-    assert(child != null, 'InheritedReactive must be used within a MultiReactiveProvider');
-    return _InheritedReactive<DataType>(reactive, child: child!);
+    assert(builder != null, 'InheritedReactive must be used within a MultiReactiveProvider');
+    return _InheritedReactive<DataType>(reactive, child: ReactiveProvider(
+      reactive,
+      builder: (context, reactiveValue, _) {
+        return builder!(context);
+      }
+    ));
   }
+
+  
 }
 class _InheritedReactive<DataType> extends InheritedWidget {
 
@@ -65,53 +71,21 @@ class MultiReactiveProvider extends StatefulWidget {
 
 class _MultiReactiveProviderState extends State<MultiReactiveProvider> {
   
-  final List<ReactiveSubscription> _reactiveSubscriptions = [];
-
-  Widget _buildInheritedReactiveTree<T>(int index) {
+  Widget _buildInheritedReactiveTree<T>(BuildContext context, int index) {
     if (index >= widget.reactives.length) return Builder(builder: (context) => widget.builder(context, widget.child));
     final inheritedReactive = widget.reactives[index] as InheritedReactive<T>;
-    inheritedReactive.setChild(_buildInheritedReactiveTree(index + 1));
+    inheritedReactive.setBuilder( (context) => _buildInheritedReactiveTree(context, index + 1));
     return inheritedReactive;
   }
 
   @override
   void initState() {
     super.initState();
-
-    for (final reactive in widget.reactives) {
-      //For supervised reactives, register them if possible
-      if (reactive.reactive is SupervisedReactive) {
-        final supervisedReactive = reactive.reactive as SupervisedReactive;
-        final supervisor = ReactiveSupervisorProvider.of(context);
-        if (supervisor != null) {
-          supervisedReactive.setSupervisor(supervisor);
-        }
-      }
-
-      _reactiveSubscriptions.add(reactive.reactive.watch((newValue, prevValue) {
-        setState(() {});
-      }));
-    }
-  }
-
-  @override
-  void dispose() {
-    for (final subscription in _reactiveSubscriptions) {
-      subscription.dispose();
-    }
-    for (final reactive in widget.reactives) {
-      if (reactive.reactive is SupervisedReactive) {
-        final supervisedReactive = reactive.reactive as SupervisedReactive;
-        supervisedReactive.removeSupervisor();
-      }
-    }
-
-    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return _buildInheritedReactiveTree(0);
+    return _buildInheritedReactiveTree(context, 0);
   }
 
 }
