@@ -33,7 +33,7 @@ class Loadable<ValueType> implements ReactiveBase {
   ValueType? get value => _reactiveStream.read().data;
 
   @override
-  read() => value;
+  ValueType? read() => value;
 
   void Function(Exception error)? _errorHandler;
 
