@@ -16,3 +16,5 @@ export 'providers/loadable_provider.dart' show LoadableProvider;
 export 'providers/loadable_state_provider.dart' show LoadableStateProvider;
 export 'providers/reactive_listener_widget.dart' show ReactiveListenerWidget;
 export 'providers/reactive_supervisor_provider.dart' show ReactiveSupervisorProvider;
+export 'providers/multi_reactive_provider.dart' show MultiReactiveProvider, InheritedReactive;
+export 'providers/compound_loadable_provider.dart' show CompoundLoadableProvider;
