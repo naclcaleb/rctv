@@ -53,7 +53,7 @@ class _InheritedReactive<DataType> extends InheritedWidget {
   }
 
   @override
-  bool updateShouldNotify(_InheritedReactive oldWidget) => oldWidget.reactive != reactive;
+  bool updateShouldNotify(_InheritedReactive oldWidget) => true;
   
 }
 
@@ -72,7 +72,7 @@ class MultiReactiveProvider extends StatefulWidget {
 class _MultiReactiveProviderState extends State<MultiReactiveProvider> {
   
   Widget _buildInheritedReactiveTree<T>(BuildContext context, int index) {
-    if (index >= widget.reactives.length) return Builder(builder: (context) => widget.builder(context, widget.child));
+    if (index >= widget.reactives.length) return widget.builder(context, widget.child);
     final inheritedReactive = widget.reactives[index] as InheritedReactive<T>;
     inheritedReactive.setBuilder( (context) => _buildInheritedReactiveTree(context, index + 1));
     return inheritedReactive;
