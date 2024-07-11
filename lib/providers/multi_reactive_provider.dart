@@ -28,9 +28,7 @@ class InheritedReactive<DataType> extends StatelessWidget {
     assert(builder != null, 'InheritedReactive must be used within a MultiReactiveProvider');
     return _InheritedReactive<DataType>(reactive, child: ReactiveProvider(
       reactive,
-      builder: (context, reactiveValue, _) {
-        return builder!(context);
-      }
+      builder: (context, reactiveValue, _) => builder!(context)
     ));
   }
 
@@ -75,7 +73,7 @@ class _MultiReactiveProviderState extends State<MultiReactiveProvider> {
     if (index >= widget.reactives.length) return widget.builder(context, widget.child);
     final inheritedReactive = widget.reactives[index] as InheritedReactive<T>;
     inheritedReactive.setBuilder( (context) => _buildInheritedReactiveTree(context, index + 1));
-    return inheritedReactive;
+    return inheritedReactive.build(context);
   }
 
   @override
