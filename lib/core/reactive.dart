@@ -87,7 +87,7 @@ class Watcher<DataType> {
 
 typedef ReactiveUpdateListener<DataType> = void Function(DataType newValue, DataType oldValue);
 typedef ReactiveSource<DataType> = DataType Function(DataType? currentValue, Watcher<DataType> watch, OtherType Function<OtherType>(Reactive<OtherType> reactive) read);
-typedef AsyncReactiveSource<DataType> = Future<DataType> Function(DataType? currentValue, Watcher<ReactiveAsyncUpdate<DataType>> watch, OtherType Function<OtherType>(Reactive<OtherType> reactive) read);
+typedef AsyncReactiveSource<DataType> = Future<DataType> Function(DataType? currentValue, Watcher<DataType> watch, OtherType Function<OtherType>(Reactive<OtherType> reactive) read);
 
 class ReactiveException implements Exception {
   final String message;
@@ -138,19 +138,19 @@ class Reactive<DataType> {
 
   static const _uuidGenerator = Uuid();
 
-  late ReactiveSource<DataType>? _source;
-  late final Watcher<DataType>? _watcher;
+  late ReactiveSource? _source;
+  late final Watcher? _watcher;
 
   final Map<String, (ReactiveSubscription, ReactiveUpdateListener<DataType>)> _subscriptions = {};
 
   Reactive(DataType initialValue) : _value = initialValue, _prevValue = initialValue, _source = null;
 
-  Reactive._sourced(ReactiveSource<DataType> source, { DataType? initialValue }) : _source = source {
-    _watcher = Watcher(() {
+  Reactive._sourced(ReactiveSource<DataType> source, { DataType? initialValue }) : _source = source as ReactiveSource {
+    _watcher = Watcher<DataType>(() {
       assert(_source != null && _watcher != null);
-      _internalSet( _source!(value, _watcher!, reader) );
+      _internalSet( _source!(value, _watcher! as Watcher<DataType>, reader) );
     });
-    initialValue ??= source(null, _watcher!, reader);
+    initialValue ??= source(null, _watcher! as Watcher<DataType>, reader);
 
     _value = initialValue;
     _prevValue = initialValue;
@@ -313,7 +313,7 @@ class AsyncReactive<DataType> extends Reactive<ReactiveAsyncUpdate<DataType>> {
         if (!silent) _internalSet(ReactiveAsyncUpdate(status: ReactiveAsyncStatus.loading));
 
         //Create the future
-        _asyncSource(currentValue?.data, watch, read)
+        _asyncSource(currentValue?.data, watch as Watcher<DataType>, read)
           .then((value) {
             //On completion, send a data update
             _internalSet(ReactiveAsyncUpdate(status: ReactiveAsyncStatus.data, data: value));
@@ -335,12 +335,12 @@ class AsyncReactive<DataType> extends Reactive<ReactiveAsyncUpdate<DataType>> {
       return currentValue!;
     };
     
-    _watcher = Watcher(() {
+    _watcher = Watcher<DataType>(() {
       assert(_source != null && _watcher != null);
-      _source!(value, _watcher!, Reactive.reader);
+      _source!(value, _watcher! as Watcher<DataType>, Reactive.reader);
     });
 
-    _value = _source!(_value, _watcher!, Reactive.reader);
+    _value = _source!(_value, _watcher! as Watcher<DataType>, Reactive.reader);
     _prevValue = _value;
   }
     
