@@ -279,8 +279,6 @@ class AsyncReactive<DataType> extends Reactive<ReactiveAsyncUpdate<DataType>> {
 
   final AsyncReactiveSource<DataType> _asyncSource;
 
-  DataType? _lastValue;
-
   bool _autoExecute = true;
   bool _silentLoading = false;
 
