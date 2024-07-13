@@ -20,13 +20,17 @@ class ReactiveSubscription {
 
 typedef WatchFilter<DataType> = bool Function(DataType newValue, DataType oldValue);
 
+class _StreamEntry<StreamType> {
+  final StreamSubscription<StreamType> subscription;
+  StreamType? latestValue;
+  _StreamEntry({ required this.subscription, required this.latestValue });
+}
+
 class Watcher<DataType> {
 
   final void Function() _listener;
   final Map<Reactive, ReactiveSubscription> _subscriptions = {};
-  final Map<Stream, StreamSubscription> _streamSubscriptions = {};
-
-  DataType? _lastStreamValue;
+  final Map<Stream, _StreamEntry> _streamSubscriptions = {};
 
   Watcher(this._listener);
 
@@ -52,26 +56,16 @@ class Watcher<DataType> {
     return reactive.readValue();
   }
 
-  Future<DataType> stream<StreamType>(Stream<StreamType> stream, { DataType Function(StreamType item)? transformer, WatchFilter<DataType>? filter }) async {
-    assert(transformer != null || StreamType == DataType, 'Stream values do not match reactive data type. Consider using a transformer function');
+  Future<StreamType> stream<StreamType>(Stream<StreamType> stream, { WatchFilter<StreamType>? filter }) async {
     if (!_streamSubscriptions.containsKey(stream)) {
-      _streamSubscriptions[stream] = stream.listen((item) {
-        DataType value;
-        if (transformer != null) value = transformer(item);
-        else value = item as DataType;
-
-        if (filter != null && _lastStreamValue != null && !filter(value, _lastStreamValue!)) return;
-        _lastStreamValue = value;
+      _streamSubscriptions[stream] = _StreamEntry(subscription: stream.listen((item) {
+        final streamEntry = _streamSubscriptions[stream] as _StreamEntry<StreamType>;
+        if (filter != null && streamEntry.latestValue != null && !filter(item, streamEntry.latestValue!)) return;
+        streamEntry.latestValue = item;
         _listener();
-      });
+      }), latestValue: null);
     }
-    final StreamType item = await stream.last;
-
-    DataType value;
-    if (transformer != null) value = transformer(item);
-    else value = item as DataType;
-
-    return value;
+    return await stream.last;
   }
 
   void dispose() {
@@ -82,7 +76,7 @@ class Watcher<DataType> {
     }
 
     for (final streamSubscription in _streamSubscriptions.keys) {
-      _streamSubscriptions[streamSubscription]!.cancel();
+      _streamSubscriptions[streamSubscription]!.subscription.cancel();
       _streamSubscriptions.remove(streamSubscription);
     }
   }
