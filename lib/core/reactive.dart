@@ -69,7 +69,7 @@ class Watcher<DataType> {
       final value = await stream.last;
       return value;
     }
-    on TypeError catch(er) {
+    on Exception catch(er) {
       throw ReactiveException(er.toString());
     }
   }
