@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import 'package:rctv/providers/reactive_observer_provider.dart';
 import '../core/reactive.dart';
 
 /*
@@ -7,8 +8,8 @@ import '../core/reactive.dart';
 
 class ReactiveListenerWidget<DataType> extends StatefulWidget {
 
-  final ReactiveBase<DataType> reactive;
-  final ReactiveListener<DataType> listener;
+  final Reactive<DataType> reactive;
+  final ReactiveUpdateListener<DataType> listener;
   final Widget child;
 
   const ReactiveListenerWidget(this.reactive, {required this.listener, required this.child, super.key});
@@ -26,11 +27,16 @@ class _ReactiveListenerWidget<DataType> extends State<ReactiveListenerWidget<Dat
     super.initState();
 
     _reactiveSubscription = widget.reactive.watch(widget.listener);
+
+    if (widget.reactive.isObserved()) {
+      ReactiveObserverProvider.of(context)?.register(widget.reactive);
+    }
   }
 
   @override
   void dispose() {
     _reactiveSubscription.dispose();
+    if (widget.reactive.shouldAutoDispose) widget.reactive.dispose();
     super.dispose();
   }
 

@@ -1,46 +1,197 @@
+library rctv;
+
 import 'dart:async';
-
-import 'package:flutter/foundation.dart';
-import 'package:flutter/widgets.dart';
-
-abstract interface class ReactiveBase<DataType> {
-  DataType read();
-  ReactiveSubscription watch(ReactiveListener<DataType> listener);
-  void dispose();
-}
+import 'dart:developer';
+import 'package:uuid/uuid.dart';
+part 'reactive_observer.dart';
 
 class ReactiveSubscription {
   final void Function() dispose;
+  final String _uuid;
 
-  ReactiveSubscription(this.dispose);
+  String getUuid() => _uuid;
+
+  ReactiveSubscription(this._uuid, this.dispose);
 }
 
-typedef ReactiveListener<DataType> = void Function(DataType newValue, DataType prevValue);
+typedef WatchFilter<DataType> = bool Function(DataType newValue, DataType oldValue);
 
-class Reactive<DataType> with ChangeNotifier implements ReactiveBase<DataType> {
+class Watcher<DataType> {
 
-  DataType _value;
-  DataType _prevValue;
+  final void Function() _listener;
+  final Map<Reactive, ReactiveSubscription> _subscriptions = {};
+  final Map<Stream, StreamSubscription> _streamSubscriptions = {};
 
-  final List<StreamSubscription?> _streamSubscriptions = [];
+  DataType? _lastStreamValue;
 
-  Reactive(DataType initialValue) : _value = initialValue, _prevValue = initialValue;
+  Watcher(this._listener);
 
-  void set(DataType newValue) {
-    _prevValue = _value;
-    _value = newValue;
+  bool isInitialized = false;
 
-    notifyListeners();
+  NewType call<NewType>(Reactive<NewType> reactive, { WatchFilter<NewType>? filter }) {
+    if (!_subscriptions.containsKey(reactive)) {
+      _subscriptions[reactive] = reactive.watch((newValue, oldValue) {
+        if (filter != null && !filter(newValue, oldValue)) return;
+        _listener();
+      });
+    }
+    return reactive.read();
   }
 
-  void addSourceStream<Type>(Stream<Type> sourceStream, FutureOr<DataType> Function(Type data) valueFromData) {
-    _streamSubscriptions.add(sourceStream.listen((data) async {
-      set(await valueFromData(data));
-    }));
+  Future<NewType> async<NewType>(AsyncReactive<NewType> reactive) async {
+    if (!_subscriptions.containsKey(reactive)) {
+        _subscriptions[reactive] = reactive.watch((newUpdate, oldUpdate) {
+          if (newUpdate.status != ReactiveAsyncStatus.data && newUpdate.status != ReactiveAsyncStatus.done) return;
+          _listener();
+        });
+    }
+    return reactive.readValue();
   }
+
+  Future<DataType> stream<StreamType>(Stream<StreamType> stream, { DataType Function(StreamType item)? transformer, WatchFilter<DataType>? filter }) async {
+    assert(transformer != null || StreamType == DataType, 'Stream values do not match reactive data type. Consider using a transformer function');
+    if (!_streamSubscriptions.containsKey(stream)) {
+      _streamSubscriptions[stream] = stream.listen((item) {
+        DataType value;
+        if (transformer != null) value = transformer(item);
+        else value = item as DataType;
+
+        if (filter != null && _lastStreamValue != null && !filter(value, _lastStreamValue!)) return;
+        _lastStreamValue = value;
+        _listener();
+      });
+    }
+    final StreamType item = await stream.last;
+
+    DataType value;
+    if (transformer != null) value = transformer(item);
+    else value = item as DataType;
+
+    return value;
+  }
+
+  void dispose() {
+    for (final reactive in _subscriptions.keys) {
+      _subscriptions[reactive]!.dispose();
+      if (reactive.shouldAutoDispose) reactive.dispose();
+      _subscriptions.remove(reactive);
+    }
+
+    for (final streamSubscription in _streamSubscriptions.keys) {
+      _streamSubscriptions[streamSubscription]!.cancel();
+      _streamSubscriptions.remove(streamSubscription);
+    }
+  }
+
+}
+
+typedef ReactiveUpdateListener<DataType> = void Function(DataType newValue, DataType oldValue);
+typedef ReactiveSource<DataType> = DataType Function(DataType? currentValue, Watcher<DataType> watch, OtherType Function<OtherType>(Reactive<OtherType> reactive) read);
+typedef AsyncReactiveSource<DataType> = Future<DataType> Function(DataType? currentValue, Watcher<ReactiveAsyncUpdate<DataType>> watch, OtherType Function<OtherType>(Reactive<OtherType> reactive) read);
+
+class ReactiveException implements Exception {
+  final String message;
+  const ReactiveException(this.message);
 
   @override
-  DataType read() => _value;
+  String toString() {
+    return message;
+  }
+}
+
+class ReactiveTransaction<DataType> {
+
+  final String name;
+  final FutureOr<DataType> Function(DataType currentValue) runner;
+
+  ReactiveTransaction({ required this.name, required this.runner });
+
+  FutureOr<DataType> execute(DataType currentValue) {
+    return runner(currentValue);
+  }
+  
+}
+
+ReactiveTransaction<DataType> rctvTransaction<DataType>(FutureOr<DataType> Function(DataType currentValue) runner, { String name = 'Anonymous transaction' }) {
+  return ReactiveTransaction(name: name, runner: runner);
+}
+
+class Reactive<DataType> {
+
+  DataType? _value;
+  DataType? _prevValue;
+
+  bool shouldAutoDispose = true;
+
+  bool _isTransactional = false;
+  ReactiveObserver? _observer;
+  String? _name;
+
+  DataType get value {
+    assert(_value != null, 'Attempted to access value from uninitialized Reactive');
+    return _value!;
+  }
+  DataType get prevValue {
+    assert(_prevValue != null, 'Attempted to access value from uninitialized Reactive');
+    return _prevValue!;
+  }
+
+  static const _uuidGenerator = Uuid();
+
+  late ReactiveSource<DataType>? _source;
+  late final Watcher<DataType>? _watcher;
+
+  final Map<String, (ReactiveSubscription, ReactiveUpdateListener<DataType>)> _subscriptions = {};
+
+  Reactive(DataType initialValue) : _value = initialValue, _prevValue = initialValue, _source = null;
+
+  Reactive._sourced(ReactiveSource<DataType> source, { DataType? initialValue }) : _source = source {
+    _watcher = Watcher(() {
+      assert(_source != null && _watcher != null);
+      _internalSet( _source!(value, _watcher!, reader) );
+    });
+    initialValue ??= source(null, _watcher!, reader);
+
+    _value = initialValue;
+    _prevValue = initialValue;
+  }
+
+  Reactive<DataType> autoDispose(bool setting) { shouldAutoDispose = setting; return this; }
+  Reactive<DataType> transactional() { _isTransactional = true; return this; }
+  Reactive<DataType> observed({ required String name }) { 
+    _name = name;
+    return this.transactional();
+  }
+
+  bool isObserved() => _name != null && _isTransactional;
+
+  void _setObserver(ReactiveObserver observer) {
+    assert(isObserved(), 'Only observed reactives can have an observer. Try adding `.observed()` to your reactive.');
+    _observer = observer;
+  }
+
+  DataType read() => value;
+
+  static DataType reader<DataType>(Reactive<DataType> reactive) => reactive.read();
+
+  void _notifyUpdates() {
+    for (final subscription in _subscriptions.values) {
+      subscription.$2(value, prevValue);
+    }
+  }
+
+  void _internalSet(DataType value) {
+    _prevValue = _value;
+    _value = value;
+    _notifyUpdates();
+  }
+
+  void set(DataType value) {
+    //Still debating the use of this with sourced reactives
+    //if (_source != null) throw const ReactiveException('`set` and `update` methods may not be used on a sourced reactive');
+    if (_isTransactional) throw const ReactiveException('`set` and `update` methods may not be used on a transactional reactive');
+    _internalSet(value);
+  }
 
   /*
   Unfortunately, Dart currently has no convenient way to handle immutability.
@@ -49,38 +200,184 @@ class Reactive<DataType> with ChangeNotifier implements ReactiveBase<DataType> {
   However, it is designed to happen in a way that minimizes side effects by 
   happening only inside this update function.
   This is the ONLY way reactive values should be updated with this package.
+  (This is a similar pattern to Flutter's `setState`)
   */
-  void update(DataType Function(DataType workingCopy) updater) {
+  void _internalUpdate(DataType Function(DataType workingCopy) updater) {
     //Ideally, we'd clone the object here before the user performs any transformations
-    final workingCopy = _value;
+    final workingCopy = value;
 
     //Run the updates
     updater(workingCopy);
 
     //Set the value and notify listeners
-    set(workingCopy);
+    _internalSet(workingCopy);
   }
 
-  @override
-  ReactiveSubscription watch(ReactiveListener<DataType> listener) {
-    listener0() {
-      listener(_value, _prevValue);
-    }
-    addListener(listener0);
+  void internalUpdate(DataType Function(DataType workingCopy) updater) {
+    _internalUpdate(updater);
+  }
 
-    return ReactiveSubscription(() {
-      removeListener(listener0);
+  Future<void> perform(ReactiveTransaction<DataType> transaction) async {
+
+      DataType result;
+
+      //First, let's execute the transaction
+      final potentialFuture = transaction.execute(read());
+      if (potentialFuture is Future) {
+        result = await potentialFuture;
+      }
+      else {
+        result = potentialFuture;
+      }
+
+      //Notify the supervisor if available
+      if (_observer != null) {
+        _observer!.receiveTransaction(transaction, result, this);
+      }
+      
+      //Next, notify the listeners
+      _internalSet(result);
+
+  }
+
+  ReactiveSubscription watch(ReactiveUpdateListener<DataType> listener) {
+    final key = _uuidGenerator.v4();
+    final subscription = ReactiveSubscription(key, () {
+      _subscriptions.remove(key);
     });
+    _subscriptions[key] = (subscription, listener);
+    return subscription;
   }
 
-  @override
   void dispose() {
-    for (final sub in _streamSubscriptions) {
-      sub?.cancel();
+    for (final subscriptionKey in _subscriptions.keys) {
+      final subscription = _subscriptions[subscriptionKey]!;
+      subscription.$1.dispose();
+      _subscriptions.remove(subscriptionKey);
     }
-    super.dispose();
+    _watcher?.dispose();
+    _watcher = null;
+
+    if (_observer != null) {
+      _observer?.unregister(this);
+      _observer = null;
+    }
+  }
+
+  //Now, we provide the static convenience constructors for sourced reactives
+  static Reactive<DataType> source<DataType>(ReactiveSource<DataType> source, { DataType? initialValue }) {
+    return Reactive._sourced(source, initialValue: initialValue);
+  }
+
+  static AsyncReactive<DataType> asyncSource<DataType>(AsyncReactiveSource<DataType> source, { DataType? initialValue }) {
+    return AsyncReactive(source, initialValue: initialValue);
   }
 
 }
 
+class AsyncReactive<DataType> extends Reactive<ReactiveAsyncUpdate<DataType>> {
 
+  final AsyncReactiveSource<DataType> _asyncSource;
+
+  DataType? _lastValue;
+
+  bool _autoExecute = true;
+  bool _silentLoading = false;
+
+  late void Function(bool silent) _loadFunc;
+
+  Future<DataType> readValue() async {
+    if (value.status == ReactiveAsyncStatus.data || value.status == ReactiveAsyncStatus.done) return value.data!;
+    
+    final completer = new Completer<DataType>();
+
+    final tempSubscription = watch((newValue, _) {
+      if (newValue.status == ReactiveAsyncStatus.data || newValue.status == ReactiveAsyncStatus.done) {
+        completer.complete(newValue.data!);
+      }
+    });
+
+    final result = await completer.future;
+    tempSubscription.dispose();
+    return result;
+  }
+
+  void Function({ bool? silent }) get load => ({ bool? silent }) => _loadFunc(silent ?? _silentLoading);
+
+  AsyncReactive<DataType> autoExecute(bool setting) { _autoExecute = setting; return this; }
+  AsyncReactive<DataType> silentLoading(bool setting) { _silentLoading = setting; return this; }
+
+  AsyncReactive(AsyncReactiveSource<DataType> source, { DataType? initialValue }) : _asyncSource = source, super(initialValue != null ? ReactiveAsyncUpdate(status: ReactiveAsyncStatus.data, data: initialValue) : ReactiveAsyncUpdate(status: ReactiveAsyncStatus.notStarted)) {
+    _source = (currentValue, watch, read) {
+      _loadFunc = (silent) {
+
+        //Start loading
+        if (!silent) _internalSet(ReactiveAsyncUpdate(status: ReactiveAsyncStatus.loading));
+
+        //Create the future
+        _asyncSource(currentValue?.data, watch, read)
+          .then((value) {
+            //On completion, send a data update
+            _internalSet(ReactiveAsyncUpdate(status: ReactiveAsyncStatus.data, data: value));
+          })
+          .catchError((error) {
+            log(error.toString());
+            //On error, send an error update
+            _internalSet(ReactiveAsyncUpdate(status: ReactiveAsyncStatus.error, error: error));
+          });
+      };
+
+      //If it's set up to autoexecute, we should just call the load function right away
+      if (_autoExecute) {
+        _loadFunc(_silentLoading);
+        return ReactiveAsyncUpdate(status: ReactiveAsyncStatus.loading);
+      }
+
+      //We're not doing any mutating here
+      return currentValue!;
+    };
+    
+    _watcher = Watcher(() {
+      assert(_source != null && _watcher != null);
+      _source!(value, _watcher!, Reactive.reader);
+    });
+
+    _value = _source!(_value, _watcher!, Reactive.reader);
+    _prevValue = _value;
+  }
+    
+}
+
+enum ReactiveAsyncStatus {
+  notStarted,
+  loading,
+  data,
+  done,
+  error
+}
+
+class ReactiveAsyncUpdate<DataType> {
+  final String? error;
+  final DataType? data;
+  final ReactiveAsyncStatus status;
+
+  ReactiveAsyncUpdate({ required this.status, this.data, this.error });
+
+  T when<T>({
+    required T Function() loading,
+    required T Function(String error) error,
+    required T Function(DataType data) data,
+    T Function()? notStarted
+  }) {
+    
+    return switch (status) {
+      ReactiveAsyncStatus.notStarted => notStarted != null ? notStarted() : loading(),
+      ReactiveAsyncStatus.loading => loading(),
+      ReactiveAsyncStatus.error => error(this.error!),
+      ReactiveAsyncStatus.data when this.data != null => data(this.data!),
+      ReactiveAsyncStatus.done when this.data != null => data(this.data!),
+      _ => throw const ReactiveException('`data` or `done` status sent without data')
+    };
+
+  }
+}

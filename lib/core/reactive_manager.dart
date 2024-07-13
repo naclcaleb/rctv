@@ -9,4 +9,13 @@ class ReactiveManager<Item extends Manageable<Item>> extends ManagerBase<Item, R
   void updateItem(Item newItem) {
     itemCache[newItem.id]?.set(newItem);
   }
+
+  void dispose() {
+
+    for (final item in itemCache.keys) {
+      itemCache[item]?.dispose();
+      itemCache.remove(item);
+    }
+
+  }
 }

@@ -1,6 +1,5 @@
 import 'package:flutter/widgets.dart';
-import 'package:rctv/core/supervised_reactive.dart';
-import 'package:rctv/providers/reactive_supervisor_provider.dart';
+import 'package:rctv/providers/reactive_observer_provider.dart';
 import '../core/reactive.dart';
 
 /*
@@ -9,7 +8,7 @@ import '../core/reactive.dart';
 
 class ReactiveProvider<DataType> extends StatefulWidget {
 
-  final ReactiveBase<DataType> reactive;
+  final Reactive<DataType> reactive;
   final Widget Function(BuildContext context, DataType value, Widget? child) builder;
   final Widget? child;
 
@@ -26,13 +25,12 @@ class _ReactiveProviderState<DataType> extends State<ReactiveProvider<DataType>>
   @override
   void initState() {
     super.initState();
-
-    //For supervised reactives, register them if possible
-    if (widget.reactive is SupervisedReactive) {
-      final supervisedReactive = widget.reactive as SupervisedReactive;
-      final supervisor = ReactiveSupervisorProvider.of(context);
-      if (supervisor != null) {
-        supervisedReactive.setSupervisor(supervisor);
+    
+    //For observed reactives, register them if possible
+    if (widget.reactive.isObserved()) {
+      final observer = ReactiveObserverProvider.of(context);
+      if (observer != null) {
+        observer.register(widget.reactive);
       }
     }
 
@@ -44,11 +42,8 @@ class _ReactiveProviderState<DataType> extends State<ReactiveProvider<DataType>>
   @override
   void dispose() {
     _reactiveSubscription.dispose();
-    
-    if (widget.reactive is SupervisedReactive) {
-      final supervisedReactive = widget.reactive as SupervisedReactive;
-      supervisedReactive.removeSupervisor();
-    }
+
+    if (widget.reactive.shouldAutoDispose) widget.reactive.dispose();
 
     super.dispose();
   }
