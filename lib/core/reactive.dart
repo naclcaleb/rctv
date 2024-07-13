@@ -263,8 +263,8 @@ class Reactive<DataType> {
     return Reactive._sourced(source, initialValue: initialValue);
   }
 
-  static AsyncReactive<DataType> asyncSource<DataType>(AsyncReactiveSource<DataType> source, { DataType? initialValue }) {
-    return AsyncReactive(source, initialValue: initialValue);
+  static AsyncReactive<DataType> asyncSource<DataType>(AsyncReactiveSource<DataType> source, { DataType? initialValue, bool autoExecute = true, bool silentLoading = false }) {
+    return AsyncReactive(source, initialValue: initialValue, autoExecute: autoExecute, silentLoading: silentLoading);
   }
 
 }
