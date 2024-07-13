@@ -303,10 +303,7 @@ class AsyncReactive<DataType> extends Reactive<ReactiveAsyncUpdate<DataType>> {
   @override
   AsyncReactive<DataType> observed({String? name}) { return super.observed(name: name) as AsyncReactive<DataType>; }
   
-  AsyncReactive<DataType> autoExecute(bool setting) { _autoExecute = setting; return this; }
-  AsyncReactive<DataType> silentLoading(bool setting) { _silentLoading = setting; return this; }
-
-  AsyncReactive(AsyncReactiveSource<DataType> source, { DataType? initialValue }) : _asyncSource = source, super(initialValue != null ? ReactiveAsyncUpdate<DataType>(status: ReactiveAsyncStatus.data, data: initialValue) : ReactiveAsyncUpdate<DataType>(status: ReactiveAsyncStatus.notStarted)) {
+  AsyncReactive(AsyncReactiveSource<DataType> source, { DataType? initialValue, bool autoExecute = true, bool silentLoading = false }) : _asyncSource = source, _autoExecute = autoExecute, _silentLoading = silentLoading, super(initialValue != null ? ReactiveAsyncUpdate<DataType>(status: ReactiveAsyncStatus.data, data: initialValue) : ReactiveAsyncUpdate<DataType>(status: ReactiveAsyncStatus.notStarted)) {
     _source = (currentValue, watch, read) {
       _loadFunc = (silent) {
 
