@@ -1,6 +1,6 @@
 name: rctv
 description: "An extremely lightweight library for Flutter state management based on ChangeNotifier, with additional utility classes."
-version: 0.1.6
+version: 0.1.7
 homepage: 'https://github.com/naclcaleb/rctv'
 
 environment:

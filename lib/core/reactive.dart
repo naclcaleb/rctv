@@ -114,24 +114,14 @@ ReactiveTransaction<DataType> rctvTransaction<DataType>(FutureOr<DataType> Funct
   return ReactiveTransaction(name: name, runner: runner);
 }
 
-abstract interface class _ReactiveBase<DataType, Self extends _ReactiveBase<DataType, Self>> {
-  bool shouldAutoDispose = true;
-  bool _isTransactional = false;
-  String? _name;
-
-  Self autoDispose(bool setting) { shouldAutoDispose = setting; return this as Self; }
-  Self transactional() { _isTransactional = true; return this as Self; }
-  Self observed({ required String name }) { 
-    _name = name;
-    return this.transactional();
-  }
-}
-
-class Reactive<DataType> extends _ReactiveBase<DataType, Reactive<DataType>> {
+class Reactive<DataType> {
 
   DataType? _value;
   DataType? _prevValue;
 
+  bool shouldAutoDispose = true;
+  String? _name;
+  bool _isTransactional = false;
   ReactiveObserver? _observer;
 
   DataType get value {
@@ -162,6 +152,10 @@ class Reactive<DataType> extends _ReactiveBase<DataType, Reactive<DataType>> {
     _value = initialValue;
     _prevValue = initialValue;
   }
+
+  Reactive<DataType> transactional() { _isTransactional = true; return this; }
+  Reactive<DataType> autoDispose(bool setting) { shouldAutoDispose = setting; return this; }
+  Reactive<DataType> observed({ String? name }) { _name = name; return this.transactional(); }
 
   bool isObserved() => _name != null && _isTransactional;
 
@@ -302,6 +296,13 @@ class AsyncReactive<DataType> extends Reactive<ReactiveAsyncUpdate<DataType>> {
 
   void Function({ bool? silent }) get load => ({ bool? silent }) => _loadFunc(silent ?? _silentLoading);
 
+  @override
+  AsyncReactive<DataType> transactional() { return super.transactional() as AsyncReactive<DataType>; }
+  @override
+  AsyncReactive<DataType> autoDispose(bool setting) { return super.autoDispose(setting) as AsyncReactive<DataType>; }
+  @override
+  AsyncReactive<DataType> observed({String? name}) { return super.observed(name: name) as AsyncReactive<DataType>; }
+  
   AsyncReactive<DataType> autoExecute(bool setting) { _autoExecute = setting; return this; }
   AsyncReactive<DataType> silentLoading(bool setting) { _silentLoading = setting; return this; }
 
