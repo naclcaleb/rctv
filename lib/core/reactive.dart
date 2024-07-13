@@ -306,30 +306,30 @@ class AsyncReactive<DataType> extends Reactive<ReactiveAsyncUpdate<DataType>> {
   AsyncReactive<DataType> autoExecute(bool setting) { _autoExecute = setting; return this; }
   AsyncReactive<DataType> silentLoading(bool setting) { _silentLoading = setting; return this; }
 
-  AsyncReactive(AsyncReactiveSource<DataType> source, { DataType? initialValue }) : _asyncSource = source, super(initialValue != null ? ReactiveAsyncUpdate(status: ReactiveAsyncStatus.data, data: initialValue) : ReactiveAsyncUpdate(status: ReactiveAsyncStatus.notStarted)) {
+  AsyncReactive(AsyncReactiveSource<DataType> source, { DataType? initialValue }) : _asyncSource = source, super(initialValue != null ? ReactiveAsyncUpdate<DataType>(status: ReactiveAsyncStatus.data, data: initialValue) : ReactiveAsyncUpdate<DataType>(status: ReactiveAsyncStatus.notStarted)) {
     _source = (currentValue, watch, read) {
       _loadFunc = (silent) {
 
         //Start loading
-        if (!silent) _internalSet(ReactiveAsyncUpdate(status: ReactiveAsyncStatus.loading));
+        if (!silent) _internalSet(ReactiveAsyncUpdate<DataType>(status: ReactiveAsyncStatus.loading));
 
         //Create the future
         _asyncSource(currentValue?.data, watch as Watcher<DataType>, read)
           .then((value) {
             //On completion, send a data update
-            _internalSet(ReactiveAsyncUpdate(status: ReactiveAsyncStatus.data, data: value));
+            _internalSet(ReactiveAsyncUpdate<DataType>(status: ReactiveAsyncStatus.data, data: value));
           })
           .catchError((error) {
             log(error.toString());
             //On error, send an error update
-            _internalSet(ReactiveAsyncUpdate(status: ReactiveAsyncStatus.error, error: error));
+            _internalSet(ReactiveAsyncUpdate<DataType>(status: ReactiveAsyncStatus.error, error: error));
           });
       };
 
       //If it's set up to autoexecute, we should just call the load function right away
       if (_autoExecute) {
         _loadFunc(_silentLoading);
-        return ReactiveAsyncUpdate(status: ReactiveAsyncStatus.loading);
+        return ReactiveAsyncUpdate<DataType>(status: ReactiveAsyncStatus.loading);
       }
 
       //We're not doing any mutating here
