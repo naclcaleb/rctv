@@ -10,9 +10,10 @@ class ReactiveProvider<DataType> extends StatefulWidget {
 
   final Reactive<DataType> reactive;
   final Widget Function(BuildContext context, DataType value, Widget? child) builder;
+  final ReactiveUpdateListener<DataType>? listener;
   final Widget? child;
 
-  const ReactiveProvider(this.reactive, {required this.builder, this.child, super.key});
+  const ReactiveProvider(this.reactive, {required this.builder, this.listener, this.child, super.key});
 
   @override
   State<ReactiveProvider<DataType>> createState() => _ReactiveProviderState<DataType>();
@@ -35,6 +36,7 @@ class _ReactiveProviderState<DataType> extends State<ReactiveProvider<DataType>>
     }
 
     _reactiveSubscription = widget.reactive.watch((newValue, prevValue) {
+      if (widget.listener != null) widget.listener!(newValue, prevValue);
       setState(() {});
     });
   }

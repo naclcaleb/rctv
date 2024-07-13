@@ -1,6 +1,7 @@
 part of rctv;
 
-class AsyncReactiveManager<Item extends Manageable<Item>> extends ManagerBase<Item, AsyncReactive<Item>> {
+class AsyncReactiveManager<Item extends Manageable<Item>> extends SynchronousManagerBase<Item, AsyncReactive<Item>> {
+  
   @override
   AsyncReactive<Item> convertType(Item item) {
     return AsyncReactive((currentValue, watch, _) async {

@@ -1,7 +1,7 @@
 library rctv;
 
 export 'core/base_manager.dart' show Manageable;
-export 'core/manager.dart' show Manager;
+export 'core/manager.dart' show Manager, SynchronousManager;
 export 'core/reactive.dart' show 
   Reactive, 
   ReactiveSubscription, 
