@@ -1,7 +1,6 @@
 library rctv;
 
 import 'dart:async';
-import 'dart:developer';
 import 'package:uuid/uuid.dart';
 import 'base_manager.dart';
 
@@ -58,14 +57,21 @@ class Watcher<DataType> {
 
   Future<StreamType> stream<StreamType>(Stream<StreamType> stream, { WatchFilter<StreamType>? filter }) async {
     if (!_streamSubscriptions.containsKey(stream)) {
-      _streamSubscriptions[stream] = _StreamEntry(subscription: stream.listen((item) {
+      _streamSubscriptions[stream] = _StreamEntry<StreamType>(subscription: stream.listen((item) {
         final streamEntry = _streamSubscriptions[stream] as _StreamEntry<StreamType>;
-        if (filter != null && streamEntry.latestValue != null && !filter(item, streamEntry.latestValue!)) return;
+        if (filter != null && streamEntry.latestValue != null && (streamEntry.latestValue == item || !filter(item, streamEntry.latestValue!))) return;
         streamEntry.latestValue = item;
         _listener();
       }), latestValue: null);
     }
-    return await stream.last;
+
+    try {
+      final value = await stream.last;
+      return value;
+    }
+    on TypeError catch(er) {
+      throw ReactiveException(er.toString());
+    }
   }
 
   void dispose() {
@@ -317,7 +323,6 @@ class AsyncReactive<DataType> extends Reactive<ReactiveAsyncUpdate<DataType>> {
             _internalSet(ReactiveAsyncUpdate<DataType>(status: ReactiveAsyncStatus.data, data: value));
           })
           .catchError((error) {
-            log(error.toString());
             //On error, send an error update
             _internalSet(ReactiveAsyncUpdate<DataType>(status: ReactiveAsyncStatus.error, error: error));
           });
