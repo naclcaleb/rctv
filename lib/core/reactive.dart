@@ -114,16 +114,25 @@ ReactiveTransaction<DataType> rctvTransaction<DataType>(FutureOr<DataType> Funct
   return ReactiveTransaction(name: name, runner: runner);
 }
 
-class Reactive<DataType> {
+abstract interface class _ReactiveBase<DataType, Self extends _ReactiveBase<DataType, Self>> {
+  bool shouldAutoDispose = true;
+  bool _isTransactional = false;
+  String? _name;
+
+  Self autoDispose(bool setting) { shouldAutoDispose = setting; return this as Self; }
+  Self transactional() { _isTransactional = true; return this as Self; }
+  Self observed({ required String name }) { 
+    _name = name;
+    return this.transactional();
+  }
+}
+
+class Reactive<DataType> extends _ReactiveBase<DataType, Reactive<DataType>> {
 
   DataType? _value;
   DataType? _prevValue;
 
-  bool shouldAutoDispose = true;
-
-  bool _isTransactional = false;
   ReactiveObserver? _observer;
-  String? _name;
 
   DataType get value {
     assert(_value != null, 'Attempted to access value from uninitialized Reactive');
@@ -152,13 +161,6 @@ class Reactive<DataType> {
 
     _value = initialValue;
     _prevValue = initialValue;
-  }
-
-  Reactive<DataType> autoDispose(bool setting) { shouldAutoDispose = setting; return this; }
-  Reactive<DataType> transactional() { _isTransactional = true; return this; }
-  Reactive<DataType> observed({ required String name }) { 
-    _name = name;
-    return this.transactional();
   }
 
   bool isObserved() => _name != null && _isTransactional;
