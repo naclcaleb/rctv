@@ -136,7 +136,7 @@ class Reactive<DataType> {
   static const _uuidGenerator = Uuid();
 
   late ReactiveSource? _source;
-  late final Watcher? _watcher;
+  late Watcher? _watcher;
 
   final Map<String, (ReactiveSubscription, ReactiveUpdateListener<DataType>)> _subscriptions = {};
 
