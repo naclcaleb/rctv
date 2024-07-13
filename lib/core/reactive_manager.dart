@@ -1,5 +1,4 @@
-import 'base_manager.dart';
-import 'reactive.dart';
+part of rctv;
 
 class ReactiveManager<Item extends Manageable<Item>> extends ManagerBase<Item, Reactive<Item>> {
   @override
@@ -7,7 +6,7 @@ class ReactiveManager<Item extends Manageable<Item>> extends ManagerBase<Item, R
 
   @override
   void updateItem(Item newItem) {
-    itemCache[newItem.id]?.set(newItem);
+    itemCache[newItem.id]?._internalSet(newItem);
   }
 
   void dispose() {

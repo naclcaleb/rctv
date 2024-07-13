@@ -2,8 +2,18 @@ library rctv;
 
 export 'core/base_manager.dart' show Manageable;
 export 'core/manager.dart' show Manager;
-export 'core/reactive_manager.dart' show ReactiveManager;
-export 'core/reactive.dart' show Reactive, ReactiveSubscription, ReactiveUpdateListener, ReactiveObserver, ReactiveTransaction, ReactiveException, ReactiveAsyncUpdate, ReactiveAsyncStatus, AsyncReactive;
+export 'core/reactive.dart' show 
+  Reactive, 
+  ReactiveSubscription, 
+  ReactiveUpdateListener, 
+  ReactiveObserver, 
+  ReactiveTransaction, 
+  ReactiveException, 
+  ReactiveAsyncUpdate, 
+  ReactiveAsyncStatus, 
+  AsyncReactive,
+  AsyncReactiveManager,
+  ReactiveManager;
 export 'core/reactive_aggregate.dart' show ReactiveAggregate;
 export 'core/service_locator_helpers.dart' show prodAndTestPair, lazyProdAndTestPair;
 
