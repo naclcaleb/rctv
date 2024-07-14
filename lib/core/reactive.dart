@@ -96,7 +96,7 @@ class Watcher<DataType> {
     final streamEntry = _streamSubscriptions[_streamCounter] as _StreamEntry<StreamType>;
     _streamCounter++;
     try {
-      return streamEntry.stream.last;
+      return streamEntry.latestValue ?? await streamEntry.stream.last;
     }
     on Exception catch(er) {
       throw ReactiveException(er.toString());
