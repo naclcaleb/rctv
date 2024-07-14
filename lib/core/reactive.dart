@@ -24,47 +24,74 @@ class _StreamEntry<StreamType> {
   StreamType? latestValue;
   _StreamEntry({ required this.subscription, required this.latestValue });
 }
+class _ReactiveEntry<DataType> {
+  final Reactive<DataType> reactive;
+  final ReactiveSubscription subscription;
+
+  _ReactiveEntry({ required this.reactive, required this.subscription });
+}
 
 class Watcher<DataType> {
 
   final void Function() _listener;
-  final Map<Reactive, ReactiveSubscription> _subscriptions = {};
-  final Map<Stream, _StreamEntry> _streamSubscriptions = {};
+  final List<_ReactiveEntry> _reactiveSubscriptions = [];
+  final List<_StreamEntry> _streamSubscriptions = [];
+
+  int _reactiveCounter = 0;
+  int _streamCounter = 0;
 
   Watcher(this._listener);
 
   bool isInitialized = false;
 
+  void _beforeListener() {
+    _reactiveCounter = 0;
+    _streamCounter = 0;
+  }
+
+  void _listenerWrapper() {
+    _beforeListener();
+    _listener();
+  }
+
   NewType call<NewType>(Reactive<NewType> reactive, { WatchFilter<NewType>? filter }) {
-    if (!_subscriptions.containsKey(reactive)) {
-      _subscriptions[reactive] = reactive.watch((newValue, oldValue) {
-        if (filter != null && !filter(newValue, oldValue)) return;
-        _listener();
-      });
+    if (_reactiveCounter >= _reactiveSubscriptions.length) {
+      _reactiveSubscriptions.add(
+        _ReactiveEntry(reactive: reactive, subscription: reactive.watch((newValue, oldValue) {
+          if (filter != null && !filter(newValue, oldValue)) return;
+          _listenerWrapper();
+        }))
+      ); 
     }
+    _reactiveCounter++;
     return reactive.read();
   }
 
   Future<NewType> async<NewType>(AsyncReactive<NewType> reactive) async {
-    if (!_subscriptions.containsKey(reactive)) {
-        _subscriptions[reactive] = reactive.watch((newUpdate, oldUpdate) {
+    if (_reactiveCounter >= _reactiveSubscriptions.length) {
+      _reactiveSubscriptions.add(
+        _ReactiveEntry(reactive: reactive, subscription: reactive.watch((newUpdate, oldUpdate) {
           if (newUpdate.status != ReactiveAsyncStatus.data && newUpdate.status != ReactiveAsyncStatus.done) return;
-          _listener();
-        });
+          _listenerWrapper();
+        }))
+      );
     }
+    _reactiveCounter++;
     return reactive.readValue();
   }
 
   Future<StreamType> stream<StreamType>(Stream<StreamType> stream, { WatchFilter<StreamType>? filter }) async {
-    if (!_streamSubscriptions.containsKey(stream)) {
-      _streamSubscriptions[stream] = _StreamEntry<StreamType>(subscription: stream.listen((item) {
-        final streamEntry = _streamSubscriptions[stream] as _StreamEntry<StreamType>;
-        if (filter != null && streamEntry.latestValue != null && (streamEntry.latestValue == item || !filter(item, streamEntry.latestValue!))) return;
-        streamEntry.latestValue = item;
-        _listener();
-      }), latestValue: null);
+    if (_streamCounter >= _streamSubscriptions.length) {
+      _streamSubscriptions.add(
+        _StreamEntry<StreamType>(subscription: stream.listen((item) {
+          final streamEntry = _streamSubscriptions[_streamCounter] as _StreamEntry<StreamType>;
+          if (filter != null && streamEntry.latestValue != null && (streamEntry.latestValue == item || !filter(item, streamEntry.latestValue!))) return;
+          streamEntry.latestValue = item;
+          _listenerWrapper();
+        }), latestValue: null)
+      );
     }
-
+    _streamCounter++;
     try {
       final value = await stream.last;
       return value;
@@ -75,16 +102,16 @@ class Watcher<DataType> {
   }
 
   void dispose() {
-    for (final reactive in _subscriptions.keys) {
-      _subscriptions[reactive]!.dispose();
-      if (reactive.shouldAutoDispose) reactive.dispose();
-      _subscriptions.remove(reactive);
+    for (final reactiveEntry in _reactiveSubscriptions) {
+      reactiveEntry.reactive.dispose();
+      if (reactiveEntry.reactive.shouldAutoDispose) reactiveEntry.reactive.dispose();
     }
+    _reactiveSubscriptions.clear();
 
-    for (final streamSubscription in _streamSubscriptions.keys) {
-      _streamSubscriptions[streamSubscription]!.subscription.cancel();
-      _streamSubscriptions.remove(streamSubscription);
+    for (final streamEntry in _streamSubscriptions) {
+      streamEntry.subscription.cancel();
     }
+    _streamSubscriptions.clear();
   }
 
 }
