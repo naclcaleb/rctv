@@ -21,8 +21,9 @@ typedef WatchFilter<DataType> = bool Function(DataType newValue, DataType oldVal
 
 class _StreamEntry<StreamType> {
   final StreamSubscription<StreamType> subscription;
+  final Stream<StreamType> stream;
   StreamType? latestValue;
-  _StreamEntry({ required this.subscription, required this.latestValue });
+  _StreamEntry({ required this.stream, required this.subscription, required this.latestValue });
 }
 class _ReactiveEntry<DataType> {
   final Reactive<DataType> reactive;
@@ -83,7 +84,7 @@ class Watcher<DataType> {
   Future<StreamType> stream<StreamType>(Stream<StreamType> stream, { WatchFilter<StreamType>? filter }) async {
     if (_streamCounter >= _streamSubscriptions.length) {
       _streamSubscriptions.add(
-        _StreamEntry<StreamType>(subscription: stream.listen((item) {
+        _StreamEntry<StreamType>(stream: stream, subscription: stream.listen((item) {
           final streamEntry = _streamSubscriptions[_streamCounter] as _StreamEntry<StreamType>;
           if (filter != null && streamEntry.latestValue != null && (streamEntry.latestValue == item || !filter(item, streamEntry.latestValue!))) return;
           streamEntry.latestValue = item;
@@ -91,9 +92,11 @@ class Watcher<DataType> {
         }), latestValue: null)
       );
     }
+
+    final streamEntry = _streamSubscriptions[_streamCounter] as _StreamEntry<StreamType>;
     _streamCounter++;
     try {
-      final value = await stream.last;
+      final value = await streamEntry.stream.last;
       return value;
     }
     on Exception catch(er) {
