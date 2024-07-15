@@ -39,6 +39,10 @@ class _MyHomePageState extends State<MyHomePage> {
   final _counter = Reactive<int>(0);
   final _counter2 = Reactive<int>(0);
 
+  late final testCounter = Reactive.source<int>((currentValue, watch, read) {
+    return watch(_counter) + watch(_counter2);
+  });
+
   void _incrementCounter() {
     _counter.set(_counter.read() + 1);
   }
@@ -101,6 +105,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 // wireframe for each widget.
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: <Widget>[
+                  ReactiveProvider(testCounter, builder: (counter, value, _) => Text(value.toString())),
                   const Text(
                     'You have pushed the button this many times:',
                   ),
