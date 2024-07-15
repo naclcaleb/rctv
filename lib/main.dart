@@ -39,11 +39,6 @@ class _MyHomePageState extends State<MyHomePage> {
   final _counter = Reactive<int>(0);
   final _counter2 = Reactive<int>(0);
 
-  late final delayedCounter = Reactive.asyncSource((currentValue, watch, _) async {
-    final actualCounter = watch(_counter);
-    return Future.delayed(const Duration(seconds: 3), () => actualCounter);
-  }, initialValue: 0);
-
   void _incrementCounter() {
     _counter.set(_counter.read() + 1);
   }
@@ -52,27 +47,15 @@ class _MyHomePageState extends State<MyHomePage> {
     _counter2.set(_counter2.read() + 1);
   }
 
-  late final newSumCounter = Reactive.source<int>((currentValue, watch, read) {
-    final counter1 = watch(_counter);
-    final counter2 = read(_counter2);
-    return counter1 + counter2;
-  });
-
   final theStream = Stream.fromIterable([1, 2, 3]);
 
   late final newAsyncSumCounter = Reactive.asyncSource<int>((currentValue, watch, read) async {
-    final counter1 = await watch.async(delayedCounter);
-    final testValue = await watch.stream(theStream);
+    final counter1 = watch(_counter);
+    final future = await watch.future(builder: () => Future.delayed(const Duration(seconds: 2), () => 2 + counter1));
     final counter2 = watch(_counter2);
-    return testValue;
+    return counter2 + future;
   });
 
-  late final sumCounter = Reactive.asyncSource((currentValue, watch, _) async {
-    final counter1 = await watch.async(delayedCounter);
-    final counter2 = watch(_counter2);
-
-    return counter1 + counter2;
-  });
 
   @override
   Widget build(BuildContext context) {
@@ -136,7 +119,7 @@ class _MyHomePageState extends State<MyHomePage> {
       floatingActionButton: FloatingActionButton(
         onPressed: _incrementCounter,
         tooltip: 'Increment',
-        child: const Icon(Icons.add),
+        child: const Icon(Icons.add, size: 20,),
       ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }

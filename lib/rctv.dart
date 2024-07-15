@@ -8,6 +8,7 @@ export 'core/reactive.dart' show
   ReactiveUpdateListener, 
   ReactiveObserver, 
   ReactiveTransaction, 
+  rctvTransaction, 
   ReactiveException, 
   ReactiveAsyncUpdate, 
   ReactiveAsyncStatus, 
