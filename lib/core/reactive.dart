@@ -47,18 +47,18 @@ class _FutureEntry<DataType> {
 
 //The _WatcherUpdateReferrer is used to identify which dependency triggered an update.
 //Only dependencies defined *after* the referrer will be reevaluated (particularly, this applies to streams)
-enum _WatcherReferrerType {
+enum WatcherReferrerType {
   reactive,
   stream,
   future
 }
-typedef _WatcherUpdateReferrer = ({_WatcherReferrerType referrerType, int index});
+typedef WatcherUpdateReferrer = ({WatcherReferrerType referrerType, int index});
 
-class _WatcherManager<DataType> {
+class WatcherManager {
 
   //What the watcher calls to update the reactive; ultimately triggers an `_internalSet` call
   //`_listener` is not called directly, but instead through a call to `_listenerWrapper`
-  final void Function(_WatcherUpdateReferrer referrer) _listener;
+  final void Function(WatcherUpdateReferrer referrer) _listener;
 
   //Tracking reactive and stream dependencies
   final List<_ReactiveEntry> _reactiveSubscriptions = [];
@@ -67,14 +67,14 @@ class _WatcherManager<DataType> {
 
   final String? reactiveDebugName;
 
-  _WatcherManager(this._listener, { this.reactiveDebugName });
+  WatcherManager(this._listener, { this.reactiveDebugName });
 
   //Resets the counters and referrer
-  Watcher<DataType> createWatcher(_WatcherUpdateReferrer? referrer) {
-    return Watcher<DataType>._initialize(_reactiveSubscriptions, _streamSubscriptions, _futureDependencies, notifyUpdates, referrer, debugName: reactiveDebugName);
+  Watcher createWatcher(WatcherUpdateReferrer? referrer) {
+    return Watcher._initialize(_reactiveSubscriptions, _streamSubscriptions, _futureDependencies, notifyUpdates, referrer, debugName: reactiveDebugName);
   }
 
-  void notifyUpdates(_WatcherUpdateReferrer referrer) {
+  void notifyUpdates(WatcherUpdateReferrer referrer) {
     _listener(referrer);
   }
 
@@ -101,7 +101,7 @@ class _WatcherManager<DataType> {
 //- `watch(reactiveObject)`
 //- `watch.async(asyncReactiveObject)`
 //- `watch.stream(streamReactiveObject)`
-class Watcher<DataType> {
+class Watcher {
 
   //These counters update sequentially through a Reactive source function call.
   //They represent the index of a given dependency's entry.
@@ -111,18 +111,18 @@ class Watcher<DataType> {
   int _futureCounter = 0;
 
   //Optionally, what object triggered the most recent update
-  _WatcherUpdateReferrer? _referrer;
+  WatcherUpdateReferrer? _referrer;
 
   String? _reactiveDebugName;
 
-  void Function(_WatcherUpdateReferrer referrer) _notify;
+  void Function(WatcherUpdateReferrer referrer) _notify;
 
   //These parameters come from the WatcherManager
   final List<_ReactiveEntry> _reactiveDependencies;
   final List<_StreamEntry> _streamDependencies;
   final List<_FutureEntry> _futureDependencies;
 
-  Watcher._initialize(List<_ReactiveEntry> reactiveDependencies, List<_StreamEntry> streamDependencies, List<_FutureEntry> futureDependencies, void Function(_WatcherUpdateReferrer referrer) notify, _WatcherUpdateReferrer? referrer, { String? debugName }) : _referrer = referrer, _reactiveDependencies = reactiveDependencies, _streamDependencies = streamDependencies, _futureDependencies = futureDependencies, _notify = notify, _reactiveDebugName = debugName;
+  Watcher._initialize(List<_ReactiveEntry> reactiveDependencies, List<_StreamEntry> streamDependencies, List<_FutureEntry> futureDependencies, void Function(WatcherUpdateReferrer referrer) notify, WatcherUpdateReferrer? referrer, { String? debugName }) : _referrer = referrer, _reactiveDependencies = reactiveDependencies, _streamDependencies = streamDependencies, _futureDependencies = futureDependencies, _notify = notify, _reactiveDebugName = debugName;
 
   NewType call<NewType>(Reactive<NewType> reactive, { WatchFilter<NewType>? filter }) {
 
@@ -143,7 +143,7 @@ class Watcher<DataType> {
             
             //Otherwise, notify the reactive of the update
             _notify((
-              referrerType: _WatcherReferrerType.reactive, 
+              referrerType: WatcherReferrerType.reactive, 
               index: counter //We are the referrer
             ));
           }
@@ -184,7 +184,7 @@ class Watcher<DataType> {
             
             //Notify of the new data
             _notify((
-              referrerType: _WatcherReferrerType.reactive,
+              referrerType: WatcherReferrerType.reactive,
               index: counter
             ));
           }
@@ -211,9 +211,9 @@ class Watcher<DataType> {
 
     //Return based on the proper counter index
     return _referrer!.index < switch (_referrer!.referrerType) {
-      _WatcherReferrerType.reactive => _reactiveCounter,
-      _WatcherReferrerType.stream => _streamCounter,
-      _WatcherReferrerType.future => _futureCounter
+      WatcherReferrerType.reactive => _reactiveCounter,
+      WatcherReferrerType.stream => _streamCounter,
+      WatcherReferrerType.future => _futureCounter
     };
   }
 
@@ -242,7 +242,7 @@ class Watcher<DataType> {
 
       //Notify of the update
       _notify((
-        referrerType: _WatcherReferrerType.stream,
+        referrerType: WatcherReferrerType.stream,
         index: currentCounter
       ));
     }
@@ -332,9 +332,9 @@ class Watcher<DataType> {
 }
 
 typedef ReactiveUpdateListener<DataType> = void Function(DataType newValue, DataType oldValue);
-typedef ReactiveSource<DataType> = DataType Function(DataType? currentValue, Watcher<DataType> watch, OtherType Function<OtherType>(Reactive<OtherType> reactive) read);
-typedef AsyncReactiveSource<DataType> = Future<DataType> Function(DataType? currentValue, Watcher<DataType> watch, OtherType Function<OtherType>(Reactive<OtherType> reactive) read);
-typedef _AsyncInternalReactiveSource<DataType> = ReactiveAsyncUpdate<DataType> Function(ReactiveAsyncUpdate<DataType>? currentValue, Watcher<DataType> watch, OtherType Function<OtherType>(Reactive<OtherType> reactive) read);
+typedef ReactiveSource<DataType> = DataType Function(DataType? currentValue, Watcher watch, OtherType Function<OtherType>(Reactive<OtherType> reactive) read);
+typedef AsyncReactiveSource<DataType> = Future<DataType> Function(DataType? currentValue, Watcher watch, OtherType Function<OtherType>(Reactive<OtherType> reactive) read);
+typedef _AsyncInternalReactiveSource<DataType> = ReactiveAsyncUpdate<DataType> Function(ReactiveAsyncUpdate<DataType>? currentValue, Watcher watch, OtherType Function<OtherType>(Reactive<OtherType> reactive) read);
 
 class ReactiveException implements Exception {
   final String message;
@@ -385,19 +385,19 @@ class Reactive<DataType> {
   static const _uuidGenerator = Uuid();
 
   ReactiveSource<DataType>? _source;
-  late _WatcherManager? _watcherManager;
+  late WatcherManager? _watcherManager;
 
   final Map<String, (ReactiveSubscription, ReactiveUpdateListener<DataType>)> _subscriptions = {};
 
   Reactive(DataType initialValue, { String? debugName }) : _value = initialValue, _prevValue = initialValue, _source = null, _name = debugName;
 
   Reactive._sourced(ReactiveSource<DataType> source, { DataType? initialValue, String? debugName }) : _source = source, _name = debugName {
-    _watcherManager = _WatcherManager<DataType>((referrer) {
+    _watcherManager = WatcherManager((referrer) {
       final watcher = _watcherManager!.createWatcher(referrer);
       assert(_source != null);
-      _internalSet( _source!(value, watcher as Watcher<DataType>, reader) );
+      _internalSet( _source!(value, watcher, reader) );
     }, reactiveDebugName: debugName);
-    initialValue ??= source(null, _watcherManager!.createWatcher(null) as Watcher<DataType>, reader);
+    initialValue ??= source(null, _watcherManager!.createWatcher(null), reader);
 
     _value = initialValue;
     _prevValue = initialValue;
@@ -518,6 +518,13 @@ class Reactive<DataType> {
     return AsyncReactive<DataType>(source, initialValue: initialValue, autoExecute: autoExecute, silentLoading: silentLoading, debugName: debugName);
   }
 
+  static AsyncReactive<List<Object?>> asyncCollection(List<AsyncReactive<Object?>> reactives, { String? debugName }) {
+    return AsyncReactive<List<Object?>>((currentValue, watch, _) async {
+      final futures = reactives.map((reactive) => watch.async(reactive));
+      return Future.wait(futures);
+    });
+  }
+
 }
 
 class AsyncReactive<DataType> extends Reactive<ReactiveAsyncUpdate<DataType>> {
@@ -586,13 +593,13 @@ class AsyncReactive<DataType> extends Reactive<ReactiveAsyncUpdate<DataType>> {
       return currentValue!;
     };
     
-    _watcherManager = _WatcherManager<DataType>((referrer) {
+    _watcherManager = WatcherManager((referrer) {
       assert(_internalSource != null);
       final watcher = _watcherManager!.createWatcher(referrer);
-      _internalSource!(value, watcher as Watcher<DataType>, Reactive.reader);
+      _internalSource!(value, watcher, Reactive.reader);
     }, reactiveDebugName: debugName);
 
-    _value = _internalSource!(_value, _watcherManager!.createWatcher(null) as Watcher<DataType>, Reactive.reader);
+    _value = _internalSource!(_value, _watcherManager!.createWatcher(null), Reactive.reader);
     _prevValue = _value;
   }
 

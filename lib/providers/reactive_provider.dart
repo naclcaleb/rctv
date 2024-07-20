@@ -56,3 +56,52 @@ class _ReactiveProviderState<DataType> extends State<ReactiveProvider<DataType>>
   }
 
 }
+
+typedef ReactiveWidgetBuilder = Widget Function(BuildContext context, Watcher watch, OtherType Function<OtherType>(Reactive<OtherType> reactive) read);
+
+class ReactiveWidget extends StatefulWidget {
+  final ReactiveWidgetBuilder? _builder;
+
+  const ReactiveWidget({ ReactiveWidgetBuilder? builder, super.key }) : _builder = builder;
+
+  @override
+  State<ReactiveWidget> createState() => _ReactiveWidgetState();
+
+  Widget build(BuildContext context, Watcher watch, OtherType Function<OtherType>(Reactive<OtherType> reactive) read) {
+    return const Placeholder();
+  }
+}
+
+class _ReactiveWidgetState extends State<ReactiveWidget> {
+
+  Watcher? _watcher;
+
+  late final WatcherManager _watcherManager = WatcherManager((WatcherUpdateReferrer? referrer) {
+    setState(() {
+      _watcher = _watcherManager.createWatcher(referrer);
+    });
+  });
+  
+  @override
+  void initState() {
+    super.initState();
+    
+    _watcher = _watcherManager.createWatcher(null);
+  }
+
+  @override
+  void dispose() {
+    _watcher = null;
+    _watcherManager.dispose();
+
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget._builder != null) return widget._builder!(context, _watcher!, Reactive.reader);
+    return widget.build(context, _watcher!, Reactive.reader);
+  }
+
+}
+
