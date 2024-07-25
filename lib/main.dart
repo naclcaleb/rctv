@@ -1,5 +1,3 @@
-import 'dart:developer';
-
 import 'package:flutter/material.dart';
 import 'package:rctv/core/reactive.dart';
 import 'package:rctv/providers/reactive_provider.dart';
@@ -53,8 +51,8 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  final _counter = Reactive<int>(0);
-  final _counter2 = Reactive<int>(0);
+  final _counter = Reactive<int>(0, debugName: '1st Counter');
+  final _counter2 = Reactive<int>(0, debugName: '2nd Counter');
 
   void _incrementCounter() {
     _counter.set(_counter.read() + 1);

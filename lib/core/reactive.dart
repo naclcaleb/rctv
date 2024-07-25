@@ -81,7 +81,8 @@ class WatcherManager {
   void dispose() {
     for (final reactiveEntry in _reactiveSubscriptions) {
       reactiveEntry.subscription.dispose();
-      if (reactiveEntry.reactive.shouldAutoDispose) reactiveEntry.reactive.dispose();
+      if (  reactiveEntry.reactive.shouldAutoDispose && 
+            !reactiveEntry.reactive._hasListeners() ) reactiveEntry.reactive.dispose();
     }
     _reactiveSubscriptions.clear();
 
@@ -111,11 +112,11 @@ class Watcher {
   int _futureCounter = 0;
 
   //Optionally, what object triggered the most recent update
-  WatcherUpdateReferrer? _referrer;
+  final WatcherUpdateReferrer? _referrer;
 
-  String? _reactiveDebugName;
+  final String? _reactiveDebugName;
 
-  void Function(WatcherUpdateReferrer referrer) _notify;
+  final void Function(WatcherUpdateReferrer referrer) _notify;
 
   //These parameters come from the WatcherManager
   final List<_ReactiveEntry> _reactiveDependencies;
@@ -210,7 +211,7 @@ class Watcher {
     if (_referrer == null) return false;
 
     //Return based on the proper counter index
-    return _referrer!.index < switch (_referrer!.referrerType) {
+    return _referrer.index < switch (_referrer.referrerType) {
       WatcherReferrerType.reactive => _reactiveCounter,
       WatcherReferrerType.stream => _streamCounter,
       WatcherReferrerType.future => _futureCounter
@@ -235,7 +236,7 @@ class Watcher {
       final streamEntry = _streamDependencies[currentCounter] as _StreamEntry<StreamType>;
 
       //Check filters
-      if (filter != null && streamEntry.latestValue != null && (streamEntry.latestValue == item || !filter(item, streamEntry.latestValue!))) return;
+      if (filter != null && streamEntry.latestValue != null && (streamEntry.latestValue == item || !filter(item, streamEntry.latestValue as StreamType))) return;
       
       //Cache the item
       streamEntry.latestValue = item;
@@ -325,6 +326,11 @@ class Watcher {
 
     //Get the entry
     final entry = _futureDependencies[_futureCounter] as _FutureEntry<NewType>;
+
+    //Increase the future counter
+    _futureCounter++;
+
+
     return entry.latestValue as NewType;
 
   }
@@ -384,10 +390,17 @@ class Reactive<DataType> {
 
   static const _uuidGenerator = Uuid();
 
-  ReactiveSource<DataType>? _source;
-  late WatcherManager? _watcherManager;
+  final ReactiveSource<DataType>? _source;
+  WatcherManager? _watcherManager;
 
   final Map<String, (ReactiveSubscription, ReactiveUpdateListener<DataType>)> _subscriptions = {};
+
+  //Make it easy to track lifecycle changes in Reactives for debugging purposes
+  void _debugLog(String message) {
+    if (_name != null) {
+      log('(rctv) $_name: $message');
+    }
+  }
 
   Reactive(DataType initialValue, { String? debugName }) : _value = initialValue, _prevValue = initialValue, _source = null, _name = debugName;
 
@@ -397,7 +410,10 @@ class Reactive<DataType> {
       assert(_source != null);
       _internalSet( _source!(value, watcher, reader) );
     }, reactiveDebugName: debugName);
+
+    
     initialValue ??= source(null, _watcherManager!.createWatcher(null), reader);
+    _debugLog('Initital value is $initialValue');
 
     _value = initialValue;
     _prevValue = initialValue;
@@ -427,6 +443,7 @@ class Reactive<DataType> {
   void _internalSet(DataType value) {
     _prevValue = _value;
     _value = value;
+    _debugLog('Value updated, old=$_prevValue, new=$_value');
     _notifyUpdates();
   }
 
@@ -461,8 +478,14 @@ class Reactive<DataType> {
     _internalUpdate(updater);
   }
 
+  bool _hasListeners() {
+    return _subscriptions.isNotEmpty;
+  }
+
   Future<void> perform<TransactionDataType>(ReactiveTransaction<TransactionDataType> transaction, { bool silent = true }) async {
       assert(TransactionDataType == DataType, 'Reactive<$DataType> can only perform transactions of type ReactiveTransaction<$DataType>');
+
+      _debugLog('Performing Transaction ${transaction.name}');
 
       DataType? result;
 
@@ -491,14 +514,12 @@ class Reactive<DataType> {
       _subscriptions.remove(key);
     });
     _subscriptions[key] = (subscription, listener);
+    _debugLog('New subscription, total ${_subscriptions.length}');
     return subscription;
   }
 
   void dispose() {
-    for (final subscriptionKey in _subscriptions.keys) {
-      final subscription = _subscriptions[subscriptionKey]!;
-      subscription.$1.dispose();
-    }
+    _debugLog('Disposing');
     _subscriptions.clear();
     _watcherManager?.dispose();
     _watcherManager = null;
@@ -533,14 +554,15 @@ class AsyncReactive<DataType> extends Reactive<ReactiveAsyncUpdate<DataType>> {
 
   _AsyncInternalReactiveSource<DataType>? _internalSource;
 
-  bool _autoExecute = true;
-  bool _silentLoading = false;
+  final bool _autoExecute;
+  final bool _silentLoading;
 
   late void Function(bool silent) _loadFunc;
 
   Future<DataType> readValue() async {
     if (value.status == ReactiveAsyncStatus.data || value.status == ReactiveAsyncStatus.done) return value.data!;
     
+    // ignore: unnecessary_new
     final completer = new Completer<DataType>();
 
     final tempSubscription = watch((newValue, _) {
@@ -577,7 +599,6 @@ class AsyncReactive<DataType> extends Reactive<ReactiveAsyncUpdate<DataType>> {
             _internalSet(ReactiveAsyncUpdate<DataType>(status: ReactiveAsyncStatus.data, data: value));
           })
           .catchError((error, stacktrace) {
-            log(error.toString());
             //On error, send an error update
             _internalSet(ReactiveAsyncUpdate<DataType>(status: ReactiveAsyncStatus.error, error: error));
           });
@@ -585,6 +606,7 @@ class AsyncReactive<DataType> extends Reactive<ReactiveAsyncUpdate<DataType>> {
 
       //If it's set up to autoexecute, we should just call the load function right away
       if (_autoExecute) {
+        _debugLog('Autoexecuting');
         _loadFunc(_silentLoading);
         return ReactiveAsyncUpdate<DataType>(status: ReactiveAsyncStatus.loading);
       }
@@ -606,6 +628,8 @@ class AsyncReactive<DataType> extends Reactive<ReactiveAsyncUpdate<DataType>> {
   @override
   Future<void> perform<TransactionDataType>(ReactiveTransaction<TransactionDataType> transaction, { bool silent = true }) async {
     assert(TransactionDataType == DataType, 'Reactive<$DataType> can only perform transactions of type ReactiveTransaction<$DataType>');
+
+    _debugLog('Performing transaction ${transaction.name}');
 
     DataType? result;
 
@@ -674,10 +698,17 @@ class ReactiveAsyncUpdate<DataType> {
       ReactiveAsyncStatus.notStarted => notStarted != null ? notStarted() : loading(),
       ReactiveAsyncStatus.loading => loading(),
       ReactiveAsyncStatus.error => error(this.error!),
-      ReactiveAsyncStatus.data when this.data != null => data(this.data!),
-      ReactiveAsyncStatus.done when this.data != null => data(this.data!),
+      ReactiveAsyncStatus.data when this.data != null => data(this.data as DataType),
+      ReactiveAsyncStatus.done when this.data != null => data(this.data as DataType),
       _ => throw const ReactiveException('`data` or `done` status sent without data')
     };
 
+  }
+
+  @override
+  String toString() {
+    if (error != null) return '$runtimeType -> Error: $error';
+    if (status == ReactiveAsyncStatus.loading) return '$runtimeType (loading)';
+    return '$runtimeType -> $data ';
   }
 }
