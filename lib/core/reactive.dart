@@ -454,6 +454,13 @@ class Reactive<DataType> {
     _internalSet(value);
   }
 
+  void refresh() {
+    if (_source != null) {
+      final watcher = _watcherManager!.createWatcher((index: -1, referrerType: WatcherReferrerType.reactive));
+      _internalSet( _source(value, watcher, reader) );
+    }
+  }
+
   /*
   Unfortunately, Dart currently has no convenient way to handle immutability.
   Because of the language limitations, this package allows
@@ -600,7 +607,7 @@ class AsyncReactive<DataType> extends Reactive<ReactiveAsyncUpdate<DataType>> {
           })
           .catchError((error, stacktrace) {
             //On error, send an error update
-            _internalSet(ReactiveAsyncUpdate<DataType>(status: ReactiveAsyncStatus.error, error: error));
+            _internalSet(ReactiveAsyncUpdate<DataType>(status: ReactiveAsyncStatus.error, error: error.toString()));
           });
       };
 
@@ -623,6 +630,14 @@ class AsyncReactive<DataType> extends Reactive<ReactiveAsyncUpdate<DataType>> {
 
     _value = _internalSource!(_value, _watcherManager!.createWatcher(null), Reactive.reader);
     _prevValue = _value;
+  }
+
+  @override
+  void refresh() {
+    if (_internalSource != null) {
+      final watcher = _watcherManager!.createWatcher((index: -1, referrerType: WatcherReferrerType.reactive));
+      _internalSource!(value, watcher, Reactive.reader);
+    }
   }
 
   @override
