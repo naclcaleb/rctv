@@ -165,6 +165,32 @@ class Watcher {
     return value;
   }
 
+  void withListener<NewType>(Reactive<NewType> reactive, { WatchFilter<NewType>? filter, required ReactiveUpdateListener<NewType> listener }) {
+
+    //If a subscription has not been created...
+    if (_reactiveCounter >= _reactiveDependencies.length) {
+
+      //Add a new reactive dependency
+      _reactiveDependencies.add(
+        
+        _ReactiveEntry<NewType>(
+          reactive: reactive, //This reactive
+          subscription: reactive.watch((newValue, oldValue) {
+            //If it doesn't pass the filter, ignore
+            if (filter != null && !filter(newValue, oldValue)) return; 
+            
+            //Otherwise, run the listener
+            listener(newValue, oldValue);
+          }
+        ))
+
+      ); 
+    }
+
+    //Increment the counter
+    _reactiveCounter++;
+  }
+
   Future<NewType> async<NewType>(AsyncReactive<NewType> reactive) async {
 
     //If a subscription has not been created...

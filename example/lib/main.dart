@@ -60,7 +60,7 @@ class MainViewModel extends ReactiveAggregate {
     //Decode the data with the data classes
     return Activity.fromJson(response.data);
 
-  }, silentLoading: true);
+  });
 
   void setCategory(ActivityCategories newCategory) { activityCategory.set(newCategory); }
 

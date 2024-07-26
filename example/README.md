@@ -17,7 +17,7 @@ late final activity = Reactive.asyncSource<Activity>((currentValue, watch, _) as
 
     //Decode the data with the data classes
     return Activity.fromJson(response.data);
-}, silentLoading: true);
+});
 
 void setCategory(ActivityCategories newCategory) { activityCategory.set(newCategory); } //Uses the `Reactive.set` method
 ```
