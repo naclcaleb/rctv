@@ -109,7 +109,7 @@ class _ReactiveWidgetState extends State<ReactiveWidget> {
 
 
 
-typedef AsyncReactiveWidgetBuilder = Future<Widget> Function(BuildContext context, Watcher watch, OtherType Function<OtherType>(Reactive<OtherType> reactive) read);
+typedef AsyncReactiveWidgetBuilder = Future<Widget Function(BuildContext context)> Function(Watcher watch, OtherType Function<OtherType>(Reactive<OtherType> reactive) read);
 
 class AsyncReactiveWidget extends StatefulWidget {
   final AsyncReactiveWidgetBuilder? _builder;
@@ -121,8 +121,8 @@ class AsyncReactiveWidget extends StatefulWidget {
   @override
   State<AsyncReactiveWidget> createState() => _AsyncReactiveWidgetState();
 
-  Future<Widget> build(BuildContext context, Watcher watch, OtherType Function<OtherType>(Reactive<OtherType> reactive) read) async {
-    return const Placeholder();
+  Future<Widget Function(BuildContext context)> build(Watcher watch, OtherType Function<OtherType>(Reactive<OtherType> reactive) read) async {
+    return (context) => const Placeholder();
   }
 
   Widget loading(BuildContext context) {
@@ -136,9 +136,9 @@ class AsyncReactiveWidget extends StatefulWidget {
 
 class _AsyncReactiveWidgetState extends State<AsyncReactiveWidget> {
 
-  late final _internalReactive = Reactive.asyncSource<Widget>((currentValue, watch, read) async {
-    if (widget._builder != null) return widget._builder!(context, watch, read);
-    return widget.build(context, watch, read);
+  late final _internalReactive = Reactive.asyncSource<Widget Function(BuildContext context)>((currentValue, watch, read) async {
+    if (widget._builder != null) return widget._builder!(watch, read);
+    return widget.build(watch, read);
   });
 
   @override
@@ -147,7 +147,7 @@ class _AsyncReactiveWidgetState extends State<AsyncReactiveWidget> {
       return value.when(
         loading: () => widget._loading != null ? widget._loading!() : widget.loading(context), 
         error: (error) => widget._error != null ? widget._error!(error) : widget.error(context, error), 
-        data: (value) => value
+        data: (value) => value(context)
       );
     });
   }
