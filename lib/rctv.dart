@@ -14,10 +14,14 @@ export 'core/reactive.dart' show
   ReactiveAsyncStatus, 
   AsyncReactive,
   AsyncReactiveManager,
-  ReactiveManager;
+  ReactiveManager,
+  Watcher,
+  WatcherManager,
+  WatcherReferrerType,
+  WatcherUpdateReferrer;
 export 'core/reactive_aggregate.dart' show ReactiveAggregate;
 export 'core/service_locator_helpers.dart' show prodAndTestPair, lazyProdAndTestPair;
 
-export 'providers/reactive_provider.dart' show ReactiveProvider;
+export 'providers/reactive_provider.dart' show ReactiveProvider, ReactiveWidget, AsyncReactiveWidget;
 export 'providers/reactive_listener_widget.dart' show ReactiveListenerWidget;
 export 'providers/reactive_observer_provider.dart' show ReactiveObserverProvider;

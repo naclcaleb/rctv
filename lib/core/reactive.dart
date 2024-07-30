@@ -250,7 +250,7 @@ class Watcher {
     }
   }
 
-  Future<StreamType> stream<StreamType>({ required Stream<StreamType> Function() builder, WatchFilter<StreamType>? filter }) async {
+  FutureOr<StreamType> stream<StreamType>({ required Stream<StreamType> Function() builder, WatchFilter<StreamType>? filter }) async {
 
     //Copy the counter
     int currentCounter = _streamCounter;
@@ -600,7 +600,9 @@ class AsyncReactive<DataType> extends Reactive<ReactiveAsyncUpdate<DataType>> {
 
     final tempSubscription = watch((newValue, _) {
       if (newValue.status == ReactiveAsyncStatus.data || newValue.status == ReactiveAsyncStatus.done) {
-        completer.complete(newValue.data!);
+        if (!completer.isCompleted) {
+          completer.complete(newValue.data!);
+        }
       }
     });
 
@@ -609,7 +611,9 @@ class AsyncReactive<DataType> extends Reactive<ReactiveAsyncUpdate<DataType>> {
     return result;
   }
 
-  void Function({ bool? silent }) get load => ({ bool? silent }) => _loadFunc(silent ?? _silentLoading);
+  void load({ bool? silent }) {
+    _loadFunc(silent ?? _silentLoading);
+  }
 
   @override
   AsyncReactive<DataType> transactional() { return super.transactional() as AsyncReactive<DataType>; }
@@ -632,6 +636,7 @@ class AsyncReactive<DataType> extends Reactive<ReactiveAsyncUpdate<DataType>> {
             _internalSet(ReactiveAsyncUpdate<DataType>(status: ReactiveAsyncStatus.data, data: value));
           })
           .catchError((error, stacktrace) {
+            log('Error', error: error);
             //On error, send an error update
             _internalSet(ReactiveAsyncUpdate<DataType>(status: ReactiveAsyncStatus.error, error: error.toString()));
           });

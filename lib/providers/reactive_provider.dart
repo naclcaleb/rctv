@@ -105,3 +105,52 @@ class _ReactiveWidgetState extends State<ReactiveWidget> {
 
 }
 
+
+
+
+
+typedef AsyncReactiveWidgetBuilder = Future<Widget> Function(BuildContext context, Watcher watch, OtherType Function<OtherType>(Reactive<OtherType> reactive) read);
+
+class AsyncReactiveWidget extends StatefulWidget {
+  final AsyncReactiveWidgetBuilder? _builder;
+  final Widget Function()? _loading;
+  final Widget Function(String error)? _error;
+
+  const AsyncReactiveWidget({ AsyncReactiveWidgetBuilder? builder, Widget Function()? loading, Widget Function(String error)? error, super.key }) : _builder = builder, _loading = loading, _error = error;
+
+  @override
+  State<AsyncReactiveWidget> createState() => _AsyncReactiveWidgetState();
+
+  Future<Widget> build(BuildContext context, Watcher watch, OtherType Function<OtherType>(Reactive<OtherType> reactive) read) async {
+    return const Placeholder();
+  }
+
+  Widget loading(BuildContext context) {
+    return const Placeholder();
+  }
+
+  Widget error(BuildContext context, String error) {
+    return const Placeholder();
+  }
+}
+
+class _AsyncReactiveWidgetState extends State<AsyncReactiveWidget> {
+
+  late final _internalReactive = Reactive.asyncSource<Widget>((currentValue, watch, read) async {
+    if (widget._builder != null) return widget._builder!(context, watch, read);
+    return widget.build(context, watch, read);
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ReactiveProvider(_internalReactive, builder: (context, value, _) {
+      return value.when(
+        loading: () => widget._loading != null ? widget._loading!() : widget.loading(context), 
+        error: (error) => widget._error != null ? widget._error!(error) : widget.error(context, error), 
+        data: (value) => value
+      );
+    });
+  }
+
+}
+
