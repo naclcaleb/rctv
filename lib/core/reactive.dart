@@ -320,9 +320,8 @@ class Watcher {
         return streamEntry.stream!.last; 
       }
     }
-    on Exception catch(er) {
-      log(er.toString());
-      throw ReactiveException(er.toString());
+    on Exception catch(_) {
+      rethrow;
     }
   }
 
@@ -603,10 +602,16 @@ class AsyncReactive<DataType> extends Reactive<ReactiveAsyncUpdate<DataType>> {
         if (!completer.isCompleted) {
           completer.complete(newValue.data!);
         }
+      } else if (newValue.status == ReactiveAsyncStatus.error) {
+        if (!completer.isCompleted) {
+          completer.completeError(newValue.error!);
+        }
       }
     });
 
-    final result = await completer.future;
+    final result = await completer.future.onError((error, _) {
+      throw error as Exception;
+    });
     tempSubscription.dispose();
     return result;
   }
@@ -636,7 +641,6 @@ class AsyncReactive<DataType> extends Reactive<ReactiveAsyncUpdate<DataType>> {
             _internalSet(ReactiveAsyncUpdate<DataType>(status: ReactiveAsyncStatus.data, data: value));
           })
           .catchError((error, stacktrace) {
-            log('Error', error: error);
             //On error, send an error update
             _internalSet(ReactiveAsyncUpdate<DataType>(status: ReactiveAsyncStatus.error, error: error.toString()));
           });
