@@ -506,7 +506,7 @@ class Reactive<DataType> {
     _internalSet(workingCopy);
   }
 
-  void internalUpdate(DataType Function(DataType workingCopy) updater) {
+  void update(DataType Function(DataType workingCopy) updater) {
     _internalUpdate(updater);
   }
 
