@@ -429,7 +429,7 @@ class Reactive<DataType> {
 
   Reactive(DataType initialValue, { String? debugName }) : _value = initialValue, _prevValue = initialValue, _source = null, _name = debugName;
 
-  Reactive._sourced(ReactiveSource<DataType> source, { DataType? initialValue, String? debugName }) : _source = source, _name = debugName {
+  Reactive._sourced(ReactiveSource<DataType> source, { String? debugName }) : _source = source, _name = debugName {
     _watcherManager = WatcherManager((referrer) {
       final watcher = _watcherManager!.createWatcher(referrer);
       assert(_source != null);
@@ -437,11 +437,8 @@ class Reactive<DataType> {
     }, reactiveDebugName: debugName);
 
     
-    initialValue ??= source(null, _watcherManager!.createWatcher(null), reader);
-    _debugLog('Initital value is $initialValue');
-
-    _value = initialValue;
-    _prevValue = initialValue;
+    _value = source(null, _watcherManager!.createWatcher(null), reader);
+    _prevValue = _value;
   }
 
   Reactive<DataType> transactional() { _isTransactional = true; return this; }
