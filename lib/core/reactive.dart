@@ -560,8 +560,8 @@ class Reactive<DataType> {
   }
 
   //Now, we provide the static convenience constructors for sourced reactives
-  static Reactive<DataType> source<DataType>(ReactiveSource<DataType> source, { DataType? initialValue, String? debugName }) {
-    return Reactive<DataType>._sourced(source, initialValue: initialValue, debugName: debugName);
+  static Reactive<DataType> source<DataType>(ReactiveSource<DataType> source, { String? debugName }) {
+    return Reactive<DataType>._sourced(source, debugName: debugName);
   }
 
   static AsyncReactive<DataType> asyncSource<DataType>(AsyncReactiveSource<DataType> source, { DataType? initialValue, bool autoExecute = true, bool silentLoading = false, String? debugName }) {
