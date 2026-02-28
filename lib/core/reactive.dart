@@ -586,7 +586,7 @@ class AsyncReactive<DataType> extends Reactive<ReactiveAsyncUpdate<DataType>> {
   final bool _autoExecute;
   final bool _silentLoading;
 
-  late void Function(bool silent) _loadFunc;
+  late Future<DataType> Function(bool silent) _loadFunc;
 
   Future<DataType> readValue() async {
     if (value.status == ReactiveAsyncStatus.data || value.status == ReactiveAsyncStatus.done) return value.data!;
