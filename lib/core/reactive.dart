@@ -613,8 +613,8 @@ class AsyncReactive<DataType> extends Reactive<ReactiveAsyncUpdate<DataType>> {
     return result;
   }
 
-  void load({ bool? silent }) {
-    _loadFunc(silent ?? _silentLoading);
+  Future<DataType> load({ bool? silent }) async {
+    return _loadFunc(silent ?? _silentLoading);
   }
 
   @override
@@ -626,21 +626,22 @@ class AsyncReactive<DataType> extends Reactive<ReactiveAsyncUpdate<DataType>> {
   
   AsyncReactive(AsyncReactiveSource<DataType> source, { DataType? initialValue, bool autoExecute = true, bool silentLoading = false, String? debugName }) : _asyncSource = source, _autoExecute = autoExecute, _silentLoading = silentLoading, super(initialValue != null ? ReactiveAsyncUpdate<DataType>(status: ReactiveAsyncStatus.data, data: initialValue) : ReactiveAsyncUpdate<DataType>(status: ReactiveAsyncStatus.notStarted), debugName: debugName) {
     _internalSource = (currentValue, watch, read) {
-      _loadFunc = (silent) {
+      _loadFunc = (silent) async {
 
         //Start loading
         if (!silent) _internalSet(ReactiveAsyncUpdate<DataType>(status: ReactiveAsyncStatus.loading));
 
         //Create the future
-        _asyncSource(currentValue?.data, watch, read)
-          .then((value) {
-            //On completion, send a data update
-            _internalSet(ReactiveAsyncUpdate<DataType>(status: ReactiveAsyncStatus.data, data: value));
-          })
+        var value = await _asyncSource(currentValue?.data, watch, read)
           .catchError((error, stacktrace) {
             //On error, send an error update
             _internalSet(ReactiveAsyncUpdate<DataType>(status: ReactiveAsyncStatus.error, error: error.toString()));
           });
+
+        //On completion, send a data update
+        _internalSet(ReactiveAsyncUpdate<DataType>(status: ReactiveAsyncStatus.data, data: value));
+        
+        return value;
       };
 
       //If it's set up to autoexecute, we should just call the load function right away
