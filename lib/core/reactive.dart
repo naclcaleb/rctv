@@ -633,7 +633,7 @@ class AsyncReactive<DataType> extends Reactive<ReactiveAsyncUpdate<DataType>> {
 
         //Create the future
         try {
-          var value = await _asyncSource(currentValue?.data, watch, read)
+          var value = await _asyncSource(currentValue?.data, watch, read);
 
           //On completion, send a data update
           _internalSet(ReactiveAsyncUpdate<DataType>(status: ReactiveAsyncStatus.data, data: value));
