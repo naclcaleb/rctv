@@ -632,17 +632,18 @@ class AsyncReactive<DataType> extends Reactive<ReactiveAsyncUpdate<DataType>> {
         if (!silent) _internalSet(ReactiveAsyncUpdate<DataType>(status: ReactiveAsyncStatus.loading));
 
         //Create the future
-        var value = await _asyncSource(currentValue?.data, watch, read)
-          .catchError((error, stacktrace) {
-            //On error, send an error update
-            _internalSet(ReactiveAsyncUpdate<DataType>(status: ReactiveAsyncStatus.error, error: error.toString()));
-            return null;
-          });
+        try {
+          var value = await _asyncSource(currentValue?.data, watch, read)
 
-        //On completion, send a data update
-        _internalSet(ReactiveAsyncUpdate<DataType>(status: ReactiveAsyncStatus.data, data: value));
-        
-        return value;
+          //On completion, send a data update
+          _internalSet(ReactiveAsyncUpdate<DataType>(status: ReactiveAsyncStatus.data, data: value));
+          
+          return value;
+        } catch(error) {
+          //On error, send an error update
+          _internalSet(ReactiveAsyncUpdate<DataType>(status: ReactiveAsyncStatus.error, error: error.toString()));
+          return null;
+        }
       };
 
       //If it's set up to autoexecute, we should just call the load function right away
