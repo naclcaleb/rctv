@@ -586,7 +586,7 @@ class AsyncReactive<DataType> extends Reactive<ReactiveAsyncUpdate<DataType>> {
   final bool _autoExecute;
   final bool _silentLoading;
 
-  late Future<DataType> Function(bool silent) _loadFunc;
+  late Future<DataType?> Function(bool silent) _loadFunc;
 
   Future<DataType> readValue() async {
     if (value.status == ReactiveAsyncStatus.data || value.status == ReactiveAsyncStatus.done) return value.data!;
@@ -613,7 +613,7 @@ class AsyncReactive<DataType> extends Reactive<ReactiveAsyncUpdate<DataType>> {
     return result;
   }
 
-  Future<DataType> load({ bool? silent }) async {
+  Future<DataType?> load({ bool? silent }) async {
     return _loadFunc(silent ?? _silentLoading);
   }
 
@@ -636,6 +636,7 @@ class AsyncReactive<DataType> extends Reactive<ReactiveAsyncUpdate<DataType>> {
           .catchError((error, stacktrace) {
             //On error, send an error update
             _internalSet(ReactiveAsyncUpdate<DataType>(status: ReactiveAsyncStatus.error, error: error.toString()));
+            return null;
           });
 
         //On completion, send a data update
